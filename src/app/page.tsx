@@ -1,69 +1,116 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { Tldraw, Editor, type TLShape } from 'tldraw'
+import 'tldraw/tldraw.css'
+import { useEffect, useState } from 'react'
+import { BinomioShapeUtil } from '@/components/BinomioShape'
+import { MatrizShapeUtil } from '@/components/MatrizShape'
+import { LimiteShapeUtil } from '@/components/LimiteShape'
+import { IntegralSimpleShapeUtil } from '@/components/IntegralSimpleShape'
+import { PolaresShapeUtil } from '@/components/PolaresShape'
+import { DerivadaShapeUtil } from '@/components/DerivadaShape'
+import { TrigonometriaShapeUtil } from '@/components/TrigonometriaShape'
+import { ConicasShapeUtil } from '@/components/ConicasShape'
+
+// 1. Declaramos el array AFUERA del componente para evitar re-renders
+const misBloquesMatematicos = [
+  BinomioShapeUtil,
+  MatrizShapeUtil,
+  LimiteShapeUtil,
+  IntegralSimpleShapeUtil,
+  PolaresShapeUtil,
+  DerivadaShapeUtil,
+  TrigonometriaShapeUtil,
+  ConicasShapeUtil,
+]
+
+type Categoria = 'Álgebra y Geometría' | 'Cálculo I' | 'Cálculo II'
+
+type Laboratorio = { categoria: Categoria; label: string; tipo: TLShape['type']; w: number; h: number }
+
+const CATEGORIAS: Categoria[] = ['Álgebra y Geometría', 'Cálculo I', 'Cálculo II']
+
+// w/h: tamaño usado para centrar el bloque en el viewport
+const LABORATORIOS: Laboratorio[] = [
+  { categoria: 'Álgebra y Geometría', label: 'Cuadrado del Binomio', tipo: 'binomio-cuadrado', w: 380, h: 440 },
+  { categoria: 'Álgebra y Geometría', label: 'Matriz 2x2', tipo: 'matriz-2x2', w: 520, h: 600 },
+  { categoria: 'Álgebra y Geometría', label: 'Trigonometría', tipo: 'trigonometria-circulo', w: 780, h: 640 },
+  { categoria: 'Álgebra y Geometría', label: 'Cónicas', tipo: 'conicas', w: 640, h: 780 },
+  { categoria: 'Cálculo I', label: 'Límites', tipo: 'limite-funcion', w: 560, h: 640 },
+  { categoria: 'Cálculo I', label: 'Derivada', tipo: 'derivada-estudio', w: 580, h: 700 },
+  { categoria: 'Cálculo I', label: 'Integral', tipo: 'integral-simple', w: 580, h: 680 },
+  { categoria: 'Cálculo II', label: 'Polares', tipo: 'coordenadas-polares', w: 580, h: 700 },
+]
+
+export default function PizarraPage() {
+  const [editor, setEditor] = useState<Editor | null>(null)
+  const [abierta, setAbierta] = useState<Categoria | null>(null)
+
+  useEffect(() => {
+    if (!abierta) return
+    const alPresionar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAbierta(null)
+    }
+    window.addEventListener('keydown', alPresionar)
+    return () => window.removeEventListener('keydown', alPresionar)
+  }, [abierta])
+
+  const insertar = ({ tipo, w, h }: Laboratorio) => {
+    setAbierta(null)
+    if (!editor) return
+    const { x, y } = editor.getViewportPageBounds().center
+    editor.createShape({
+      type: tipo,
+      x: x - w / 2,
+      y: y - h / 2,
+    })
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="fixed inset-0 w-screen h-screen bg-zinc-950">
+      {/* Barra flotante superior de tu marca */}
+      <div className="absolute top-3 inset-x-0 mx-auto w-fit max-w-[calc(100vw-2rem)] z-50 flex flex-wrap items-center justify-center gap-1.5 bg-zinc-900/90 border border-purple-500/40 px-3 py-1.5 rounded-2xl shadow-lg backdrop-blur-md">
+        <span className="text-xs font-bold text-purple-300 tracking-wide mr-1 whitespace-nowrap">
+          Laboratorios:
+        </span>
+        {CATEGORIAS.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setAbierta(abierta === cat ? null : cat)}
+            className={`text-xs whitespace-nowrap font-medium px-3 py-1 rounded-full border transition-colors cursor-pointer ${
+              abierta === cat
+                ? 'bg-purple-600 border-purple-500 text-white'
+                : 'bg-zinc-900 border-purple-500/40 text-purple-200 hover:bg-zinc-800'
+            }`}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+            {cat} ▾
+          </button>
+        ))}
+
+        {abierta && (
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 min-w-48 max-w-[calc(100vw-2rem)] flex flex-col gap-1 bg-zinc-900/95 border border-purple-500/40 p-1.5 rounded-xl shadow-lg backdrop-blur-md">
+            {LABORATORIOS.filter((l) => l.categoria === abierta).map((lab) => (
+              <button
+                key={lab.tipo}
+                onClick={() => insertar(lab)}
+                className="text-xs text-left whitespace-nowrap text-white font-medium px-3 py-1.5 rounded-lg hover:bg-purple-600 transition-colors cursor-pointer"
+              >
+                + {lab.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Tldraw
+        persistenceKey="mi-pizarra-local"
+        shapeUtils={misBloquesMatematicos}
+        onMount={(instanciaEditor) => {
+          // Activamos el modo oscuro de forma nativa en Tldraw v4+
+          instanciaEditor.user.updateUserPreferences({ colorScheme: 'dark' })
+          setEditor(instanciaEditor)
+        }}
+      />
+    </main>
+  )
 }
