@@ -128,7 +128,17 @@ const desplazado = (variable: string, centro: number): string =>
 const termino = (coef: number, expr: string): string =>
   Math.abs(coef) < EPS ? '' : ` ${coef > 0 ? '+' : '−'} ${formatEs(Math.abs(coef), 4)}·${expr}`
 
-function Superficie({ id, props, actualizar }: { id: string; props: Props; actualizar: (p: Partial<Props>) => void }) {
+function Superficie({
+  id,
+  props,
+  actualizar,
+  empezarGiro,
+}: {
+  id: string
+  props: Props
+  actualizar: (p: Partial<Props>) => void
+  empezarGiro: () => void
+}) {
   const { preset, modo, x0, y0, zoom, verNivel } = props
   const p = PRESETS[preset]
   const uid = id.replace(/[^a-zA-Z0-9]/g, '')
@@ -136,11 +146,16 @@ function Superficie({ id, props, actualizar }: { id: string; props: Props; actua
 
   // Cámara local mientras se arrastra; al soltar se guarda en props
   const [arrastre, setArrastre] = useState<Camara | null>(null)
+  // Giro en vivo: se manda a las props como mucho una vez por cuadro, así la otra pantalla gira a la par
+  const envio = useRef<number | null>(null)
+  const pendiente = useRef<Camara | null>(null)
+  // Malla liviana si giro yo (arrastre) o si gira otra persona (props.girando)
+  const moviendo = arrastre !== null || props.girando
   const ultimo = useRef<{ x: number; y: number } | null>(null)
   const acimut = arrastre?.acimut ?? props.acimut
   const elevacion = arrastre?.elevacion ?? props.elevacion
   const cam: Camara = { acimut, elevacion }
-  const n = arrastre ? 24 : 40
+  const n = moviendo ? 24 : 40
 
   const zMid = (p.zMin + p.zMax) / 2
   const k = ESCALA_BASE * zoom
@@ -170,7 +185,7 @@ function Superficie({ id, props, actualizar }: { id: string; props: Props; actua
 
   const nivel = useMemo(() => {
     if (parciales || !verNivel) return []
-    const m = arrastre ? 24 : 40
+    const m = moviendo ? 24 : 40
     let lo = Infinity
     let hi = -Infinity
     for (let i = 0; i <= m; i++)
@@ -181,7 +196,7 @@ function Superficie({ id, props, actualizar }: { id: string; props: Props; actua
       }
     const niveles = Array.from({ length: 8 }, (_, i) => lo + ((hi - lo) * (i + 0.5)) / 8)
     return curvasNivel(p.f, DOM, m, niveles, p.zMin)
-  }, [p, parciales, verNivel, arrastre])
+  }, [p, parciales, verNivel, moviendo])
 
   const caras = useMemo(() => {
     const zP = p.f(x0, y0)
@@ -258,6 +273,9 @@ function Superficie({ id, props, actualizar }: { id: string; props: Props; actua
     e.stopPropagation()
     e.currentTarget.setPointerCapture(e.pointerId)
     ultimo.current = { x: e.clientX, y: e.clientY }
+    // Marca de historial: un solo Ctrl+Z deshace todo el giro
+    empezarGiro()
+    actualizar({ girando: true })
     setArrastre({ acimut: props.acimut, elevacion: props.elevacion })
   }
   const alMover = (e: ReactPointerEvent<SVGSVGElement>) => {
@@ -267,13 +285,24 @@ function Superficie({ id, props, actualizar }: { id: string; props: Props; actua
     const dx = e.clientX - prev.x
     const dy = e.clientY - prev.y
     ultimo.current = { x: e.clientX, y: e.clientY }
-    setArrastre({ acimut: arrastre.acimut + dx * 0.01, elevacion: acotar(arrastre.elevacion - dy * 0.01, 0.1, PI / 2) })
+    const nueva = { acimut: arrastre.acimut + dx * 0.01, elevacion: acotar(arrastre.elevacion - dy * 0.01, 0.1, PI / 2) }
+    setArrastre(nueva)
+    pendiente.current = nueva
+    if (envio.current === null) {
+      envio.current = requestAnimationFrame(() => {
+        envio.current = null
+        if (pendiente.current) actualizar(pendiente.current)
+      })
+    }
   }
   const alSoltar = (e: ReactPointerEvent<SVGSVGElement>) => {
     e.stopPropagation()
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
     ultimo.current = null
-    if (arrastre) actualizar({ acimut: arrastre.acimut, elevacion: arrastre.elevacion })
+    if (envio.current !== null) cancelAnimationFrame(envio.current)
+    envio.current = null
+    pendiente.current = null
+    if (arrastre) actualizar({ acimut: arrastre.acimut, elevacion: arrastre.elevacion, girando: false })
     setArrastre(null)
   }
 
@@ -498,7 +527,12 @@ export class SuperficieDerivadas3DShapeUtil extends BaseBoxShapeUtil<SuperficieD
     const actualizar = (props: Partial<Props>) => {
       this.editor.updateShape<SuperficieDerivadas3DShape>({ id: shape.id, type: 'superficie-3d', props })
     }
-    return <Superficie id={shape.id} props={shape.props} actualizar={actualizar} />
+    return <Superficie
+        id={shape.id}
+        props={shape.props}
+        actualizar={actualizar}
+        empezarGiro={() => this.editor.markHistoryStoppingPoint('girar-3d')}
+      />
   }
 
   override indicator(shape: SuperficieDerivadas3DShape) {

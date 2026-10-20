@@ -146,13 +146,28 @@ function Integral({ inf, sup }: { inf: ReactNode; sup: ReactNode }) {
   )
 }
 
-function IntegralDoble({ id, props, actualizar }: { id: string; props: Props; actualizar: (p: Partial<Props>) => void }) {
+function IntegralDoble({
+  id,
+  props,
+  actualizar,
+  empezarGiro,
+}: {
+  id: string
+  props: Props
+  actualizar: (p: Partial<Props>) => void
+  empezarGiro: () => void
+}) {
   const { modo, preset, nx, ny, verSuperficie, region, orden, t, zoom } = props
   const uid = id.replace(/[^a-zA-Z0-9]/g, '')
   const riemann = modo === 'riemann'
 
   // Cámara local mientras se arrastra; al soltar se guarda en props
   const [arrastre, setArrastre] = useState<Camara | null>(null)
+  // Giro en vivo: se manda a las props como mucho una vez por cuadro, así la otra pantalla gira a la par
+  const envio = useRef<number | null>(null)
+  const pendiente = useRef<Camara | null>(null)
+  // Malla liviana si giro yo (arrastre) o si gira otra persona (props.girando)
+  const moviendo = arrastre !== null || props.girando
   const ultimo = useRef<{ x: number; y: number } | null>(null)
   const cam: Camara = arrastre ?? { acimut: props.acimut, elevacion: props.elevacion }
 
@@ -215,7 +230,7 @@ function IntegralDoble({ id, props, actualizar }: { id: string; props: Props; ac
       }
     }
   } else {
-    const malla = mallaRegion(F_FUBINI, it.a, it.b, it.desde, it.hasta, orden, arrastre ? 16 : 28, (z, n) =>
+    const malla = mallaRegion(F_FUBINI, it.a, it.b, it.desde, it.hasta, orden, moviendo ? 16 : 28, (z, n) =>
       colorAltura(z, 0, 3, sombra(n)),
     )
     for (const c of malla) caras.push({ ...c, opacidad: 0.45 })
@@ -226,7 +241,7 @@ function IntegralDoble({ id, props, actualizar }: { id: string; props: Props; ac
   const superficie =
     riemann && verSuperficie
       ? ordenarPintor(
-          mallaSuperficie(p.f, { min: -2, max: 2 }, arrastre ? 24 : 40, (z, n) => colorAltura(z, 0, 4, sombra(n))),
+          mallaSuperficie(p.f, { min: -2, max: 2 }, moviendo ? 24 : 40, (z, n) => colorAltura(z, 0, 4, sombra(n))),
           cam,
         )
       : []
@@ -271,6 +286,9 @@ function IntegralDoble({ id, props, actualizar }: { id: string; props: Props; ac
     e.stopPropagation()
     e.currentTarget.setPointerCapture(e.pointerId)
     ultimo.current = { x: e.clientX, y: e.clientY }
+    // Marca de historial: un solo Ctrl+Z deshace todo el giro
+    empezarGiro()
+    actualizar({ girando: true })
     setArrastre({ acimut: props.acimut, elevacion: props.elevacion })
   }
   const alMover = (e: ReactPointerEvent<SVGSVGElement>) => {
@@ -280,13 +298,24 @@ function IntegralDoble({ id, props, actualizar }: { id: string; props: Props; ac
     const ddx = e.clientX - prev.x
     const ddy = e.clientY - prev.y
     ultimo.current = { x: e.clientX, y: e.clientY }
-    setArrastre({ acimut: arrastre.acimut + ddx * 0.01, elevacion: acotar(arrastre.elevacion - ddy * 0.01, 0.1, PI / 2) })
+    const nueva = { acimut: arrastre.acimut + ddx * 0.01, elevacion: acotar(arrastre.elevacion - ddy * 0.01, 0.1, PI / 2) }
+    setArrastre(nueva)
+    pendiente.current = nueva
+    if (envio.current === null) {
+      envio.current = requestAnimationFrame(() => {
+        envio.current = null
+        if (pendiente.current) actualizar(pendiente.current)
+      })
+    }
   }
   const alSoltar = (e: ReactPointerEvent<SVGSVGElement>) => {
     e.stopPropagation()
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId)
     ultimo.current = null
-    if (arrastre) actualizar({ acimut: arrastre.acimut, elevacion: arrastre.elevacion })
+    if (envio.current !== null) cancelAnimationFrame(envio.current)
+    envio.current = null
+    pendiente.current = null
+    if (arrastre) actualizar({ acimut: arrastre.acimut, elevacion: arrastre.elevacion, girando: false })
     setArrastre(null)
   }
 
@@ -544,7 +573,12 @@ export class IntegralDoble3DShapeUtil extends BaseBoxShapeUtil<IntegralDoble3DSh
     const actualizar = (props: Partial<Props>) => {
       this.editor.updateShape<IntegralDoble3DShape>({ id: shape.id, type: 'integral-doble-3d', props })
     }
-    return <IntegralDoble id={shape.id} props={shape.props} actualizar={actualizar} />
+    return <IntegralDoble
+        id={shape.id}
+        props={shape.props}
+        actualizar={actualizar}
+        empezarGiro={() => this.editor.markHistoryStoppingPoint('girar-3d')}
+      />
   }
 
   override indicator(shape: IntegralDoble3DShape) {

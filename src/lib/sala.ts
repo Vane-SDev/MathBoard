@@ -26,3 +26,36 @@ export function urlDeSincronizacion(sala: string): string {
   const base = process.env.NEXT_PUBLIC_SYNC_URL ?? window.location.origin.replace(/^http/, 'ws')
   return `${base}/api/connect/${sala}`
 }
+
+// Últimas salas visitadas (solo en este navegador), la más reciente primero.
+const CLAVE_RECIENTES = 'mathboard-salas-recientes'
+const MAX_RECIENTES = 12
+
+export function salasRecientes(): string[] {
+  try {
+    const guardadas: unknown = JSON.parse(localStorage.getItem(CLAVE_RECIENTES) ?? '[]')
+    return Array.isArray(guardadas) ? guardadas.filter((s): s is string => typeof s === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export function recordarSala(sala: string): string[] {
+  const lista = [sala, ...salasRecientes().filter((s) => s !== sala)].slice(0, MAX_RECIENTES)
+  try {
+    localStorage.setItem(CLAVE_RECIENTES, JSON.stringify(lista))
+  } catch {
+    // Sin localStorage (modo privado estricto): la lista vive solo en esta pestaña.
+  }
+  return lista
+}
+
+// "Juan Pérez" → "juan-perez-k7p2": el sufijo al azar hace que el link no se pueda adivinar.
+export function nombreDeSalaNueva(nombre: string): string {
+  const sufijo = Math.random().toString(36).slice(2, 6).padEnd(4, '0')
+  return normalizarSala(`${normalizarSala(nombre).slice(0, 35)}-${sufijo}`)
+}
+
+export function irASala(sala: string) {
+  window.location.search = `?sala=${sala}`
+}
