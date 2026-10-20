@@ -11,9 +11,25 @@ type Panel = 'yo' | 'gente' | null
 
 const frenar = (e: { stopPropagation: () => void }) => e.stopPropagation()
 
+const CLAVE_PROFE = 'mathboard-es-profe'
+
+// ?rol=profe deja este navegador marcado como profe; ?rol=alumno lo desmarca (para probar como alumna).
+// Es solo comodidad de interfaz: no protege nada en el servidor.
+function detectarProfe(): boolean {
+  const rol = new URLSearchParams(window.location.search).get('rol')
+  try {
+    if (rol === 'profe') localStorage.setItem(CLAVE_PROFE, 'true')
+    if (rol === 'alumno') localStorage.removeItem(CLAVE_PROFE)
+    return rol === 'profe' || (rol !== 'alumno' && localStorage.getItem(CLAVE_PROFE) === 'true')
+  } catch {
+    return rol === 'profe'
+  }
+}
+
 export function BarraClase({ editor, sala, conectado }: { editor: Editor | null; sala: string; conectado: boolean }) {
   // Al entrar, la sala actual pasa a ser la primera de "mis salas" (la Pizarra se remonta por sala).
   const [recientes] = useState(() => recordarSala(sala))
+  const [esProfe] = useState(detectarProfe)
   const [panel, setPanel] = useState<Panel>(null)
   const [copiado, setCopiado] = useState(false)
   const archivo = useRef<HTMLInputElement>(null)
@@ -49,7 +65,7 @@ export function BarraClase({ editor, sala, conectado }: { editor: Editor | null;
   const cargar = async (e: ChangeEvent<HTMLInputElement>) => {
     const elegido = e.target.files?.[0]
     e.target.value = ''
-    if (!editor || !elegido) return
+    if (!esProfe || !editor || !elegido) return
     if (!window.confirm(`Esto reemplaza TODO lo que hay en la sala "${sala}", también en las pantallas de tus alumnos. ¿Seguir?`)) return
     const resultado = parseTldrawJsonFile({ schema: editor.store.schema, json: await elegido.text() })
     if (!resultado.ok) {
@@ -65,21 +81,32 @@ export function BarraClase({ editor, sala, conectado }: { editor: Editor | null;
 
   return (
     <div className="relative flex flex-wrap items-center gap-1.5" onPointerDown={frenar}>
-      <select
-        value={sala}
-        onChange={(e) => irASala(e.target.value)}
-        className="text-xs bg-zinc-950 border border-purple-500/40 rounded-full px-2 py-1 text-white outline-none cursor-pointer max-w-40"
-        title="Mis salas"
-      >
-        {recientes.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <button onClick={nuevaSala} className={chipNormal}>
-        + Nueva sala
-      </button>
+      {esProfe ? (
+        <>
+          <select
+            value={sala}
+            onChange={(e) => irASala(e.target.value)}
+            className="text-xs bg-zinc-950 border border-purple-500/40 rounded-full px-2 py-1 text-white outline-none cursor-pointer max-w-40"
+            title="Mis salas"
+          >
+            {recientes.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <button onClick={nuevaSala} className={chipNormal}>
+            + Nueva sala
+          </button>
+        </>
+      ) : (
+        <span
+          className="text-xs whitespace-nowrap font-medium px-3 py-1 rounded-full border bg-zinc-950 border-purple-500/40 text-white max-w-40 truncate"
+          title="Sala de la clase"
+        >
+          Sala: {sala}
+        </span>
+      )}
 
       <button onClick={() => setPanel(panel === 'yo' ? null : 'yo')} className={chipNormal} title="Tu nombre y color">
         <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ background: color }} />
@@ -100,10 +127,14 @@ export function BarraClase({ editor, sala, conectado }: { editor: Editor | null;
       <button onClick={guardar} className={chipNormal} title="Descargar un respaldo de la sala">
         💾 Guardar
       </button>
-      <button onClick={() => archivo.current?.click()} className={chipNormal} title="Restaurar un respaldo .tldr">
-        📂 Cargar
-      </button>
-      <input ref={archivo} type="file" accept=".tldr" className="hidden" onChange={cargar} />
+      {esProfe && (
+        <>
+          <button onClick={() => archivo.current?.click()} className={chipNormal} title="Restaurar un respaldo .tldr">
+            📂 Cargar
+          </button>
+          <input ref={archivo} type="file" accept=".tldr" className="hidden" onChange={cargar} />
+        </>
+      )}
 
       {panel === 'yo' && (
         <div className="absolute top-full right-0 mt-2 w-64 flex flex-col gap-2 bg-zinc-900/95 border border-purple-500/40 p-3 rounded-xl shadow-lg backdrop-blur-md">
