@@ -1,17 +1,21 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { CenteredTopPanelContainer, useEditor, type TLShape } from 'tldraw'
+import { CenteredTopPanelContainer, useEditor, useValue } from 'tldraw'
 import { BarraClase } from '@/components/BarraClase'
+import type { LAB_SCHEMAS } from '@/shapes/schemas'
 
-type Categoria = 'Álgebra y Geometría' | 'Cálculo I' | 'Cálculo II' | 'Graficador'
+type Categoria = 'Geometría' | 'Álgebra y Geometría' | 'Cálculo I' | 'Cálculo II' | 'Graficador'
 
-type Laboratorio = { categoria: Categoria; label: string; tipo: TLShape['type']; w: number; h: number }
+// Solo nuestros shapes: con todos los de tldraw la unión pasa de 25 tipos y TS deja de aceptar createShape({ type })
+type Laboratorio = { categoria: Categoria; label: string; tipo: keyof typeof LAB_SCHEMAS; w: number; h: number }
 
-const CATEGORIAS: Categoria[] = ['Álgebra y Geometría', 'Cálculo I', 'Cálculo II', 'Graficador']
+const CATEGORIAS: Categoria[] = ['Geometría', 'Álgebra y Geometría', 'Cálculo I', 'Cálculo II', 'Graficador']
 
 // w/h: tamaño usado para centrar el bloque en el viewport
 const LABORATORIOS: Laboratorio[] = [
+  { categoria: 'Geometría', label: 'Regla', tipo: 'regla', w: 1008, h: 120 },
+  { categoria: 'Geometría', label: 'Transportador', tipo: 'transportador', w: 480, h: 276 },
   { categoria: 'Álgebra y Geometría', label: 'Cuadrado del Binomio', tipo: 'binomio-cuadrado', w: 380, h: 440 },
   { categoria: 'Álgebra y Geometría', label: 'Matriz 2x2', tipo: 'matriz-2x2', w: 520, h: 600 },
   { categoria: 'Álgebra y Geometría', label: 'Trigonometría', tipo: 'trigonometria-circulo', w: 780, h: 640 },
@@ -37,6 +41,7 @@ export function BarraSuperior() {
   const editor = useEditor()
   const [abierto, setAbierto] = useState<Abierto>(null)
   const raiz = useRef<HTMLDivElement>(null)
+  const conCompas = useValue('con-compas', () => editor.getCurrentToolId() === 'compas', [editor])
 
   useEffect(() => {
     if (!abierto) return
@@ -107,6 +112,20 @@ export function BarraSuperior() {
                     + {lab.label}
                   </button>
                 ))}
+                {cat === 'Geometría' && (
+                  <button
+                    onClick={() => {
+                      setAbierto(null)
+                      editor.setCurrentTool('compas')
+                    }}
+                    className={`text-xs text-left whitespace-nowrap font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                      conCompas ? 'bg-fuchsia-600 text-white' : 'text-white hover:bg-purple-600'
+                    }`}
+                    title="Clavá la aguja, arrastrá para abrir y soltá para trazar. Esc para salir."
+                  >
+                    ✎ Compás (herramienta)
+                  </button>
+                )}
               </div>
             ))}
           </div>

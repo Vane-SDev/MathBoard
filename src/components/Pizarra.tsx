@@ -16,6 +16,9 @@ import { GraficadorLibreShapeUtil } from '@/components/GraficadorLibreShape'
 import { SuperficieDerivadas3DShapeUtil } from '@/components/SuperficieDerivadas3DShape'
 import { IntegralDoble3DShapeUtil } from '@/components/IntegralDoble3DShape'
 import { CambioVariables3DShapeUtil } from '@/components/CambioVariables3DShape'
+import { ReglaShapeUtil } from '@/components/ReglaShape'
+import { TransportadorShapeUtil } from '@/components/TransportadorShape'
+import { CompasTool, GuiaCompas } from '@/components/CompasTool'
 import { assetsEnLinea } from '@/lib/assetsEnLinea'
 import { urlDeSincronizacion } from '@/lib/sala'
 import { BarraSuperior } from '@/components/BarraSuperior'
@@ -36,6 +39,8 @@ const misBloquesMatematicos = [
   SuperficieDerivadas3DShapeUtil,
   IntegralDoble3DShapeUtil,
   CambioVariables3DShapeUtil,
+  ReglaShapeUtil,
+  TransportadorShapeUtil,
 ]
 
 // useSync necesita todos los utils (los de tldraw + los nuestros) para armar el schema de la sala.
@@ -44,8 +49,11 @@ const utilsDeLaSala = [...defaultShapeUtils, ...misBloquesMatematicos]
 // Sin R2 no guardamos videos. AFUERA del componente: un array nuevo en cada render remonta tldraw.
 const SIN_VIDEOS: string[] = []
 
-// Fondo de cuaderno y barra de marca en el TopPanel. AFUERA del componente por la misma razón.
-const COMPONENTES: TLComponents = { Background: FondoCuaderno, TopPanel: BarraSuperior }
+// Herramientas propias (StateNode). AFUERA del componente por la misma razón.
+const HERRAMIENTAS = [CompasTool]
+
+// Fondo de cuaderno, barra de marca en el TopPanel y guía del compás. AFUERA del componente por la misma razón.
+const COMPONENTES: TLComponents = { Background: FondoCuaderno, TopPanel: BarraSuperior, OnTheCanvas: GuiaCompas }
 
 export function Pizarra({ sala }: { sala: string }) {
   // La sala vive en el Durable Object: es la única fuente de verdad (no hay persistenceKey).
@@ -73,6 +81,7 @@ export function Pizarra({ sala }: { sala: string }) {
           store={store}
           licenseKey={process.env.NEXT_PUBLIC_TLDRAW_LICENSE_KEY}
           acceptedVideoMimeTypes={SIN_VIDEOS}
+          tools={HERRAMIENTAS}
           shapeUtils={misBloquesMatematicos}
           components={COMPONENTES}
           onMount={(instanciaEditor) => {

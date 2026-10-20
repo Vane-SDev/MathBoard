@@ -10,6 +10,7 @@ import {
 import type { Metodo } from '../lib/plot'
 import type { Orden } from '../lib/surface3d'
 import type { SistemaCoordenadas } from '../lib/coordenadas'
+import { anchoRegla, ALTO_REGLA, medidasTransportador } from '../lib/geometria'
 
 // ── binomio-cuadrado ──
 export type BinomioProps = {
@@ -506,6 +507,42 @@ export const cambioVariables3DDefaults: CambioVariables3DProps = {
   girando: false,
 }
 
+// ── regla ──
+export type ReglaProps = {
+  w: number
+  h: number
+  longitud: number
+}
+
+export const reglaProps: RecordProps<TLShape<'regla'>> = {
+  w: T.number,
+  h: T.number,
+  longitud: T.number,
+}
+
+export const reglaDefaults: ReglaProps = { w: anchoRegla(20), h: ALTO_REGLA, longitud: 20 }
+
+// ── transportador ──
+export type TransportadorProps = {
+  w: number
+  h: number
+  completo: boolean
+}
+
+export const transportadorProps: RecordProps<TLShape<'transportador'>> = {
+  w: T.number,
+  h: T.number,
+  completo: T.boolean,
+}
+
+const transportadorInicial = medidasTransportador(false)
+
+export const transportadorDefaults: TransportadorProps = {
+  w: transportadorInicial.w,
+  h: transportadorInicial.h,
+  completo: false,
+}
+
 declare module 'tldraw' {
   export interface TLGlobalShapePropsMap {
     'binomio-cuadrado': BinomioProps
@@ -520,6 +557,8 @@ declare module 'tldraw' {
     'superficie-3d': SuperficieDerivadas3DProps
     'integral-doble-3d': IntegralDoble3DProps
     'cambio-variables-3d': CambioVariables3DProps
+    regla: ReglaProps
+    transportador: TransportadorProps
   }
 }
 
@@ -536,4 +575,6 @@ export const LAB_SCHEMAS = {
   'superficie-3d': { props: superficieDerivadas3DProps, migrations: superficieDerivadas3DMigrations },
   'integral-doble-3d': { props: integralDoble3DProps, migrations: integralDoble3DMigrations },
   'cambio-variables-3d': { props: cambioVariables3DProps },
+  regla: { props: reglaProps },
+  transportador: { props: transportadorProps },
 } as const
