@@ -1,41 +1,13 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { polaresProps, polaresDefaults } from '@/shapes/schemas'
+import type { PresetPolares as Preset } from '@/shapes/schemas'
 import { polar, samplePolarPaths, riemannPolar, sectorPath, type FnPolar, type TramoPolar, ajustar, acotar } from '@/lib/plot'
 import { NOTABLES, fraccionPi } from '@/lib/trig'
 import { formatEs } from '@/lib/linear2d'
 
-type Preset = 'cardioide' | 'rosa' | 'circulo' | 'espiral'
-type Modo = 'trazado' | 'area'
-
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'coordenadas-polares': {
-      w: number
-      h: number
-      preset: 'cardioide' | 'rosa' | 'circulo' | 'espiral'
-      modo: 'trazado' | 'area'
-      theta: number
-      alfa: number
-      beta: number
-      n: number
-    }
-  }
-}
-
-export type PolaresShape = TLBaseShape<
-  'coordenadas-polares',
-  {
-    w: number
-    h: number
-    preset: Preset
-    modo: Modo
-    theta: number
-    alfa: number
-    beta: number
-    n: number
-  }
->
+export type PolaresShape = TLShape<'coordenadas-polares'>
 
 type PresetDef = {
   label: string
@@ -99,19 +71,10 @@ const ETIQUETAS: { t: number; txt: string }[] = [
 export class PolaresShapeUtil extends BaseBoxShapeUtil<PolaresShape> {
   static override type = 'coordenadas-polares' as const
 
-  static override props: RecordProps<PolaresShape> = {
-    w: T.number,
-    h: T.number,
-    preset: T.literalEnum('cardioide', 'rosa', 'circulo', 'espiral'),
-    modo: T.literalEnum('trazado', 'area'),
-    theta: T.number,
-    alfa: T.number,
-    beta: T.number,
-    n: T.number,
-  }
+  static override props = polaresProps
 
   override getDefaultProps(): PolaresShape['props'] {
-    return { w: 580, h: 700, preset: 'cardioide', modo: 'trazado', theta: PI, alfa: 0, beta: 2 * PI, n: 12 }
+    return { ...polaresDefaults }
   }
 
   override component(shape: PolaresShape) {
@@ -156,7 +119,6 @@ export class PolaresShapeUtil extends BaseBoxShapeUtil<PolaresShape> {
 
     const v0 = -R * U
     const lado = 2 * R * U
-
 
     return (
       <HTMLContainer

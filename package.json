@@ -6,13 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sala:dev": "wrangler dev",
+    "sala:tipos": "wrangler types worker/worker-configuration.d.ts",
+    "deploy": "next build && wrangler deploy"
   },
   "dependencies": {
+    "@tldraw/sync": "5.5.2",
+    "@tldraw/sync-core": "5.5.2",
+    "@tldraw/tlschema": "5.5.2",
+    "@tldraw/validate": "5.5.2",
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "tldraw": "^5.5.2"
+    "tldraw": "5.5.2"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -22,6 +29,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.151.2"
   }
 }

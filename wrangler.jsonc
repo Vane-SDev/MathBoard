@@ -1,0 +1,17 @@
+{
+  "name": "mathboard",
+  "main": "worker/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // La web (Next exportado) se sirve como archivos estáticos; solo /api/* despierta al Worker.
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "SALA", "class_name": "SalaDurableObject" }]
+  },
+  // Plan gratis: Durable Objects solo con SQLite.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SalaDurableObject"] }]
+}

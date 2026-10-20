@@ -1,38 +1,12 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { limiteProps, limiteDefaults } from '@/shapes/schemas'
+import type { PresetLimite as Preset } from '@/shapes/schemas'
 import { acotar, ajustar, samplePaths, deltaFunciona, deltaMaximo, type Fn, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
 
-type Preset = 'continua' | 'agujero' | 'salto' | 'asintota'
-type Modo = 'laterales' | 'epsilon-delta'
-
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'limite-funcion': {
-      w: number
-      h: number
-      preset: 'continua' | 'agujero' | 'salto' | 'asintota'
-      modo: 'laterales' | 'epsilon-delta'
-      dist: number
-      epsilon: number
-      delta: number
-    }
-  }
-}
-
-export type LimiteShape = TLBaseShape<
-  'limite-funcion',
-  {
-    w: number
-    h: number
-    preset: Preset
-    modo: Modo
-    dist: number
-    epsilon: number
-    delta: number
-  }
->
+export type LimiteShape = TLShape<'limite-funcion'>
 
 type PresetDef = {
   label: string
@@ -102,18 +76,10 @@ const fmtL = (L: number): string => (L === Infinity ? '+∞' : formatEs(L))
 export class LimiteShapeUtil extends BaseBoxShapeUtil<LimiteShape> {
   static override type = 'limite-funcion' as const
 
-  static override props: RecordProps<LimiteShape> = {
-    w: T.number,
-    h: T.number,
-    preset: T.literalEnum('continua', 'agujero', 'salto', 'asintota'),
-    modo: T.literalEnum('laterales', 'epsilon-delta'),
-    dist: T.number,
-    epsilon: T.number,
-    delta: T.number,
-  }
+  static override props = limiteProps
 
   override getDefaultProps(): LimiteShape['props'] {
-    return { w: 560, h: 640, preset: 'continua', modo: 'laterales', dist: 1, epsilon: 0.5, delta: 0.5 }
+    return { ...limiteDefaults }
   }
 
   override component(shape: LimiteShape) {

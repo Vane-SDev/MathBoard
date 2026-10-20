@@ -1,36 +1,10 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { matrizProps, matrizDefaults } from '@/shapes/schemas'
 import { apply, det, isSingular, add, toSvg, formatEs, type Mat2 } from '@/lib/linear2d'
 
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'matriz-2x2': {
-      w: number
-      h: number
-      a: number
-      b: number
-      c: number
-      d: number
-      showGrid: boolean
-      showDet: boolean
-    }
-  }
-}
-
-export type MatrizShape = TLBaseShape<
-  'matriz-2x2',
-  {
-    w: number
-    h: number
-    a: number
-    b: number
-    c: number
-    d: number
-    showGrid: boolean
-    showDet: boolean
-  }
->
+export type MatrizShape = TLShape<'matriz-2x2'>
 
 type Coef = 'a' | 'b' | 'c' | 'd'
 type Bandera = 'showGrid' | 'showDet'
@@ -57,19 +31,10 @@ const SLIDERS: { clave: Coef; color: string }[] = [
 export class MatrizShapeUtil extends BaseBoxShapeUtil<MatrizShape> {
   static override type = 'matriz-2x2' as const
 
-  static override props: RecordProps<MatrizShape> = {
-    w: T.number,
-    h: T.number,
-    a: T.number,
-    b: T.number,
-    c: T.number,
-    d: T.number,
-    showGrid: T.boolean,
-    showDet: T.boolean,
-  }
+  static override props = matrizProps
 
   override getDefaultProps(): MatrizShape['props'] {
-    return { w: 520, h: 600, a: 1, b: 1, c: 0, d: 1, showGrid: true, showDet: true }
+    return { ...matrizDefaults }
   }
 
   override component(shape: MatrizShape) {

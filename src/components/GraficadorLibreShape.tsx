@@ -1,41 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { graficadorLibreProps, graficadorLibreDefaults } from '@/shapes/schemas'
 import { pasoLindo, raicesNumericas, samplePaths, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
 import { parsear, type Parseo } from '@/lib/parser'
 
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'graficador-libre': {
-      w: number
-      h: number
-      exprF: string
-      exprG: string
-      verG: boolean
-      verNotables: boolean
-      ox: number
-      oy: number
-      escala: number
-    }
-  }
-}
-
-export type GraficadorLibreShape = TLBaseShape<
-  'graficador-libre',
-  {
-    w: number
-    h: number
-    exprF: string
-    exprG: string
-    verG: boolean
-    verNotables: boolean
-    ox: number
-    oy: number
-    escala: number
-  }
->
+export type GraficadorLibreShape = TLShape<'graficador-libre'>
 
 type Props = GraficadorLibreShape['props']
 type Bandera = 'verG' | 'verNotables'
@@ -281,20 +253,10 @@ function Graficador({ id, props, actualizar }: { id: string; props: Props; actua
 export class GraficadorLibreShapeUtil extends BaseBoxShapeUtil<GraficadorLibreShape> {
   static override type = 'graficador-libre' as const
 
-  static override props: RecordProps<GraficadorLibreShape> = {
-    w: T.number,
-    h: T.number,
-    exprF: T.string,
-    exprG: T.string,
-    verG: T.boolean,
-    verNotables: T.boolean,
-    ox: T.number,
-    oy: T.number,
-    escala: T.number,
-  }
+  static override props = graficadorLibreProps
 
   override getDefaultProps(): GraficadorLibreShape['props'] {
-    return { w: 640, h: 760, exprF: 'x^3 - 3x + 1', exprG: 'x - 1', verG: false, verNotables: true, ox: 0, oy: 0, escala: 4 }
+    return { ...graficadorLibreDefaults }
   }
 
   override component(shape: GraficadorLibreShape) {

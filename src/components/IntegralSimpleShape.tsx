@@ -1,44 +1,12 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { integralSimpleProps, integralSimpleDefaults } from '@/shapes/schemas'
+import type { PresetIntegralSimple as Preset } from '@/shapes/schemas'
 import { samplePaths, riemann, type Metodo, type Fn, type Ventana, ajustar, acotar } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
 
-type Preset = 'parabola' | 'seno' | 'exponencial'
-type Modo = 'definida' | 'indefinida'
-
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'integral-simple': {
-      w: number
-      h: number
-      preset: 'parabola' | 'seno' | 'exponencial'
-      modo: 'definida' | 'indefinida'
-      metodo: 'izquierda' | 'derecha' | 'medio' | 'trapecio'
-      a: number
-      b: number
-      n: number
-      c: number
-      x0: number
-    }
-  }
-}
-
-export type IntegralSimpleShape = TLBaseShape<
-  'integral-simple',
-  {
-    w: number
-    h: number
-    preset: Preset
-    modo: Modo
-    metodo: Metodo
-    a: number
-    b: number
-    n: number
-    c: number
-    x0: number
-  }
->
+export type IntegralSimpleShape = TLShape<'integral-simple'>
 
 type PresetDef = {
   label: string
@@ -98,21 +66,10 @@ const MUESTRAS = 200
 export class IntegralSimpleShapeUtil extends BaseBoxShapeUtil<IntegralSimpleShape> {
   static override type = 'integral-simple' as const
 
-  static override props: RecordProps<IntegralSimpleShape> = {
-    w: T.number,
-    h: T.number,
-    preset: T.literalEnum('parabola', 'seno', 'exponencial'),
-    modo: T.literalEnum('definida', 'indefinida'),
-    metodo: T.literalEnum('izquierda', 'derecha', 'medio', 'trapecio'),
-    a: T.number,
-    b: T.number,
-    n: T.number,
-    c: T.number,
-    x0: T.number,
-  }
+  static override props = integralSimpleProps
 
   override getDefaultProps(): IntegralSimpleShape['props'] {
-    return { w: 580, h: 680, preset: 'parabola', modo: 'definida', metodo: 'medio', a: -1, b: 3, n: 8, c: 0, x0: 1 }
+    return { ...integralSimpleDefaults }
   }
 
   override component(shape: IntegralSimpleShape) {
@@ -175,7 +132,6 @@ export class IntegralSimpleShapeUtil extends BaseBoxShapeUtil<IntegralSimpleShap
   preset === 'seno' ? [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2, 2 * Math.PI]
   : preset === 'parabola' ? [-2, 0, 2]
   : [0]
-
 
     return (
       <HTMLContainer

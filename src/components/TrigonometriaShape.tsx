@@ -1,43 +1,14 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { trigonometriaProps, trigonometriaDefaults } from '@/shapes/schemas'
 import { ajustar, samplePaths, type Fn, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
 import { NOTABLES, fraccionPi, exactos } from '@/lib/trig'
 
-type Modo = 'circulo' | 'onda'
 type Bandera = 'verTan' | 'verCos'
 
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'trigonometria-circulo': {
-      w: number
-      h: number
-      modo: 'circulo' | 'onda'
-      theta: number
-      verTan: boolean
-      verCos: boolean
-      amp: number
-      freq: number
-      fase: number
-    }
-  }
-}
-
-export type TrigonometriaShape = TLBaseShape<
-  'trigonometria-circulo',
-  {
-    w: number
-    h: number
-    modo: Modo
-    theta: number
-    verTan: boolean
-    verCos: boolean
-    amp: number
-    freq: number
-    fase: number
-  }
->
+export type TrigonometriaShape = TLShape<'trigonometria-circulo'>
 
 const PI = Math.PI
 const OX = 1.8
@@ -57,30 +28,10 @@ const EPS = 1e-9
 export class TrigonometriaShapeUtil extends BaseBoxShapeUtil<TrigonometriaShape> {
   static override type = 'trigonometria-circulo' as const
 
-  static override props: RecordProps<TrigonometriaShape> = {
-    w: T.number,
-    h: T.number,
-    modo: T.literalEnum('circulo', 'onda'),
-    theta: T.number,
-    verTan: T.boolean,
-    verCos: T.boolean,
-    amp: T.number,
-    freq: T.number,
-    fase: T.number,
-  }
+  static override props = trigonometriaProps
 
   override getDefaultProps(): TrigonometriaShape['props'] {
-    return {
-      w: 780,
-      h: 640,
-      modo: 'circulo',
-      theta: PI / 6,
-      verTan: true,
-      verCos: false,
-      amp: 1,
-      freq: 1,
-      fase: 0,
-    }
+    return { ...trigonometriaDefaults }
   }
 
   override component(shape: TrigonometriaShape) {

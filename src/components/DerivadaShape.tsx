@@ -1,43 +1,14 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { derivadaProps, derivadaDefaults } from '@/shapes/schemas'
+import type { PresetDerivada as Preset } from '@/shapes/schemas'
 import { ajustar, samplePaths, rectaVentana, type Fn, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
 
-type Preset = 'cubica' | 'cuadratica' | 'trig'
-type Modo = 'secante' | 'estudio'
 type Bandera = 'verDerivada' | 'verSegunda' | 'verNotables'
 
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'derivada-estudio': {
-      w: number
-      h: number
-      preset: 'cubica' | 'cuadratica' | 'trig'
-      modo: 'secante' | 'estudio'
-      x0: number
-      dx: number
-      verDerivada: boolean
-      verSegunda: boolean
-      verNotables: boolean
-    }
-  }
-}
-
-export type DerivadaShape = TLBaseShape<
-  'derivada-estudio',
-  {
-    w: number
-    h: number
-    preset: Preset
-    modo: Modo
-    x0: number
-    dx: number
-    verDerivada: boolean
-    verSegunda: boolean
-    verNotables: boolean
-  }
->
+export type DerivadaShape = TLShape<'derivada-estudio'>
 
 type PresetDef = {
   label: string
@@ -119,30 +90,10 @@ const ANCHO = 500
 export class DerivadaShapeUtil extends BaseBoxShapeUtil<DerivadaShape> {
   static override type = 'derivada-estudio' as const
 
-  static override props: RecordProps<DerivadaShape> = {
-    w: T.number,
-    h: T.number,
-    preset: T.literalEnum('cubica', 'cuadratica', 'trig'),
-    modo: T.literalEnum('secante', 'estudio'),
-    x0: T.number,
-    dx: T.number,
-    verDerivada: T.boolean,
-    verSegunda: T.boolean,
-    verNotables: T.boolean,
-  }
+  static override props = derivadaProps
 
   override getDefaultProps(): DerivadaShape['props'] {
-    return {
-      w: 580,
-      h: 700,
-      preset: 'cubica',
-      modo: 'secante',
-      x0: 0.5,
-      dx: 1,
-      verDerivada: true,
-      verSegunda: true,
-      verNotables: true,
-    }
+    return { ...derivadaDefaults }
   }
 
   override component(shape: DerivadaShape) {

@@ -1,7 +1,9 @@
 'use client'
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { integralDoble3DProps, integralDoble3DDefaults, integralDoble3DMigrations } from '@/shapes/schemas'
+import type { PresetIntegralDoble as Preset, RegionIntegralDoble as Region } from '@/shapes/schemas'
 import { acotar, ajustar } from '@/lib/plot'
 import { formatEs } from '@/lib/linear2d'
 import {
@@ -21,48 +23,7 @@ import {
   type Vec3,
 } from '@/lib/surface3d'
 
-type Modo = 'riemann' | 'fubini'
-type Preset = 'paraboloide' | 'plano' | 'silla'
-type Region = 'triangulo' | 'parabola' | 'circulo'
-
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'integral-doble-3d': {
-      w: number
-      h: number
-      modo: 'riemann' | 'fubini'
-      preset: 'paraboloide' | 'plano' | 'silla'
-      nx: number
-      ny: number
-      verSuperficie: boolean
-      region: 'triangulo' | 'parabola' | 'circulo'
-      orden: 'dydx' | 'dxdy'
-      t: number
-      acimut: number
-      elevacion: number
-      zoom: number
-    }
-  }
-}
-
-export type IntegralDoble3DShape = TLBaseShape<
-  'integral-doble-3d',
-  {
-    w: number
-    h: number
-    modo: Modo
-    preset: Preset
-    nx: number
-    ny: number
-    verSuperficie: boolean
-    region: Region
-    orden: Orden
-    t: number
-    acimut: number
-    elevacion: number
-    zoom: number
-  }
->
+export type IntegralDoble3DShape = TLShape<'integral-doble-3d'>
 
 type Props = IntegralDoble3DShape['props']
 type Fn2 = (x: number, y: number) => number
@@ -571,38 +532,12 @@ function IntegralDoble({ id, props, actualizar }: { id: string; props: Props; ac
 export class IntegralDoble3DShapeUtil extends BaseBoxShapeUtil<IntegralDoble3DShape> {
   static override type = 'integral-doble-3d' as const
 
-  static override props: RecordProps<IntegralDoble3DShape> = {
-    w: T.number,
-    h: T.number,
-    modo: T.literalEnum('riemann', 'fubini'),
-    preset: T.literalEnum('paraboloide', 'plano', 'silla'),
-    nx: T.number,
-    ny: T.number,
-    verSuperficie: T.boolean,
-    region: T.literalEnum('triangulo', 'parabola', 'circulo'),
-    orden: T.literalEnum('dydx', 'dxdy'),
-    t: T.number,
-    acimut: T.number,
-    elevacion: T.number,
-    zoom: T.number,
-  }
+  static override props = integralDoble3DProps
+
+  static override migrations = integralDoble3DMigrations
 
   override getDefaultProps(): Props {
-    return {
-      w: 640,
-      h: 820,
-      modo: 'riemann',
-      preset: 'paraboloide',
-      nx: 4,
-      ny: 4,
-      verSuperficie: true,
-      region: 'parabola',
-      orden: 'dydx',
-      t: 0.5,
-      acimut: VISTA_3D.acimut,
-      elevacion: VISTA_3D.elevacion,
-      zoom: 1,
-    }
+    return { ...integralDoble3DDefaults }
   }
 
   override component(shape: IntegralDoble3DShape) {

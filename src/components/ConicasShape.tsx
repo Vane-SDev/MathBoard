@@ -1,45 +1,13 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { conicasProps, conicasDefaults } from '@/shapes/schemas'
+import type { TipoConica as Tipo } from '@/shapes/schemas'
 import { acotar, ajustar, pathParametrico, rectaVentana, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs, type Vec2 } from '@/lib/linear2d'
 import { NOTABLES, fraccionPi } from '@/lib/trig'
 
-type Tipo = 'circunferencia' | 'elipse' | 'parabola' | 'hiperbola'
-type Orientacion = 'horizontal' | 'vertical'
-
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    conicas: {
-      w: number
-      h: number
-      tipo: 'circunferencia' | 'elipse' | 'parabola' | 'hiperbola'
-      orientacion: 'horizontal' | 'vertical'
-      cx: number
-      cy: number
-      a: number
-      b: number
-      p: number
-      t: number
-    }
-  }
-}
-
-export type ConicasShape = TLBaseShape<
-  'conicas',
-  {
-    w: number
-    h: number
-    tipo: Tipo
-    orientacion: Orientacion
-    cx: number
-    cy: number
-    a: number
-    b: number
-    p: number
-    t: number
-  }
->
+export type ConicasShape = TLShape<'conicas'>
 
 const PI = Math.PI
 const V: Ventana = { xMin: -8, xMax: 8, yMin: -6, yMax: 6 }
@@ -67,21 +35,10 @@ const punto = (P: Vec2) => `(${formatEs(P.x)}; ${formatEs(P.y)})`
 export class ConicasShapeUtil extends BaseBoxShapeUtil<ConicasShape> {
   static override type = 'conicas' as const
 
-  static override props: RecordProps<ConicasShape> = {
-    w: T.number,
-    h: T.number,
-    tipo: T.literalEnum('circunferencia', 'elipse', 'parabola', 'hiperbola'),
-    orientacion: T.literalEnum('horizontal', 'vertical'),
-    cx: T.number,
-    cy: T.number,
-    a: T.number,
-    b: T.number,
-    p: T.number,
-    t: T.number,
-  }
+  static override props = conicasProps
 
   override getDefaultProps(): ConicasShape['props'] {
-    return { w: 640, h: 780, tipo: 'elipse', orientacion: 'horizontal', cx: 0, cy: 0, a: 3, b: 2, p: 1, t: PI / 4 }
+    return { ...conicasDefaults }
   }
 
   override component(shape: ConicasShape) {

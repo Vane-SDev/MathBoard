@@ -1,7 +1,9 @@
 'use client'
 
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { superficieDerivadas3DProps, superficieDerivadas3DDefaults, superficieDerivadas3DMigrations } from '@/shapes/schemas'
+import type { PresetSuperficie as Preset } from '@/shapes/schemas'
 import { acotar, ajustar } from '@/lib/plot'
 import { formatEs } from '@/lib/linear2d'
 import {
@@ -18,41 +20,7 @@ import {
   type Vec3,
 } from '@/lib/surface3d'
 
-type Preset = 'paraboloide' | 'silla' | 'ondas' | 'gaussiana'
-type Modo = 'parciales' | 'gradiente'
-
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'superficie-3d': {
-      w: number
-      h: number
-      preset: 'paraboloide' | 'silla' | 'ondas' | 'gaussiana'
-      modo: 'parciales' | 'gradiente'
-      x0: number
-      y0: number
-      acimut: number
-      elevacion: number
-      zoom: number
-      verNivel: boolean
-    }
-  }
-}
-
-export type SuperficieDerivadas3DShape = TLBaseShape<
-  'superficie-3d',
-  {
-    w: number
-    h: number
-    preset: Preset
-    modo: Modo
-    x0: number
-    y0: number
-    acimut: number
-    elevacion: number
-    zoom: number
-    verNivel: boolean
-  }
->
+export type SuperficieDerivadas3DShape = TLShape<'superficie-3d'>
 
 type Props = SuperficieDerivadas3DShape['props']
 type Fn2 = (x: number, y: number) => number
@@ -518,32 +486,12 @@ function Superficie({ id, props, actualizar }: { id: string; props: Props; actua
 export class SuperficieDerivadas3DShapeUtil extends BaseBoxShapeUtil<SuperficieDerivadas3DShape> {
   static override type = 'superficie-3d' as const
 
-  static override props: RecordProps<SuperficieDerivadas3DShape> = {
-    w: T.number,
-    h: T.number,
-    preset: T.literalEnum('paraboloide', 'silla', 'ondas', 'gaussiana'),
-    modo: T.literalEnum('parciales', 'gradiente'),
-    x0: T.number,
-    y0: T.number,
-    acimut: T.number,
-    elevacion: T.number,
-    zoom: T.number,
-    verNivel: T.boolean,
-  }
+  static override props = superficieDerivadas3DProps
+
+  static override migrations = superficieDerivadas3DMigrations
 
   override getDefaultProps(): Props {
-    return {
-      w: 640,
-      h: 820,
-      preset: 'paraboloide',
-      modo: 'parciales',
-      x0: 1,
-      y0: 0.5,
-      acimut: -0.6,
-      elevacion: 0.55,
-      zoom: 1,
-      verNivel: true,
-    }
+    return { ...superficieDerivadas3DDefaults }
   }
 
   override component(shape: SuperficieDerivadas3DShape) {

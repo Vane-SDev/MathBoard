@@ -1,50 +1,21 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, RecordProps, T, TLBaseShape } from 'tldraw'
-
-// 1. REGISTRO GLOBAL PARA TLDRAW v4+ (Elimina los errores TS2344 de TLShape / TLBaseBoxShape)
-declare module 'tldraw' {
-  export interface TLGlobalShapePropsMap {
-    'binomio-cuadrado': {
-      w: number
-      h: number
-      a: number
-      b: number
-    }
-  }
-}
+import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { binomioProps, binomioDefaults } from '@/shapes/schemas'
 
 // 2. EL CONTRATO DE TYPESCRIPT: Estructura de datos del bloque
-export type BinomioShape = TLBaseShape<
-  'binomio-cuadrado',
-  {
-    w: number
-    h: number
-    a: number
-    b: number
-  }
->
+export type BinomioShape = TLShape<'binomio-cuadrado'>
 
 // 3. LA CLASE CONTROLADORA DEL MICRO-LABORATORIO
 export class BinomioShapeUtil extends BaseBoxShapeUtil<BinomioShape> {
   static override type = 'binomio-cuadrado' as const
 
   // Validador de esquema de Tldraw para la base de datos local (persistenceKey)
-  static override props: RecordProps<BinomioShape> = {
-    w: T.number,
-    h: T.number,
-    a: T.number,
-    b: T.number,
-  }
+  static override props = binomioProps
 
   // Valores iniciales cuando insertás el bloque en el lienzo
   override getDefaultProps(): BinomioShape['props'] {
-    return {
-      w: 380,
-      h: 440,
-      a: 6,
-      b: 4,
-    }
+    return { ...binomioDefaults }
   }
 
   // 4. COMPONENTE VISUAL (React + SVG Geométrico Reactivo)
