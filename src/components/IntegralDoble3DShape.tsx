@@ -424,16 +424,6 @@ function IntegralDoble({
                 <polygon points={pts(regionPoligono)} className="fill-indigo-500" fillOpacity={0.3} />
                 <path d={linea(curvaEntra)} fill="none" className="stroke-indigo-400" strokeWidth={2} />
                 <path d={linea(curvaSale)} fill="none" className="stroke-fuchsia-400" strokeWidth={2} />
-                {(
-                  [
-                    [it.entra, etiqueta(curvaEntra, 30), 'fill-indigo-300'],
-                    [it.sale, etiqueta(curvaSale, 18), 'fill-fuchsia-300'],
-                  ] as const
-                ).map(([txt, s, c]) => (
-                  <text key={txt} x={s.x + 6} y={s.y - 6} className={`${c} text-[11px] font-mono`}>
-                    {txt}
-                  </text>
-                ))}
                 {largo > 1 && (
                   <g className="stroke-amber-400 fill-amber-400">
                     <line x1={F0.x} y1={F0.y} x2={F1.x} y2={F1.y} strokeWidth={2.5} />
@@ -472,6 +462,27 @@ function IntegralDoble({
             )}
 
             {!riemann && <path d={linea(contornoFeta)} fill="none" className="stroke-fuchsia-200" strokeWidth={1.5} />}
+
+            {/* Etiquetas de las fronteras: encima de todo, con halo, del lado opuesto a la feta */}
+            {!riemann &&
+              (
+                [
+                  [it.entra, etiqueta(curvaEntra, t < 0.5 ? 44 : 4), 'fill-indigo-300'],
+                  [it.sale, etiqueta(curvaSale, t < 0.5 ? 42 : 6), 'fill-fuchsia-300'],
+                ] as const
+              ).map(([txt, s, c]) => (
+                <text
+                  key={txt}
+                  x={s.x + 6}
+                  y={s.y - 6}
+                  paintOrder="stroke"
+                  className={`${c} stroke-zinc-950 text-[11px] font-mono`}
+                  strokeWidth={2.5}
+                  strokeLinejoin="round"
+                >
+                  {txt}
+                </text>
+              ))}
           </g>
         </svg>
       </div>

@@ -15,6 +15,7 @@ import { ConicasShapeUtil } from '@/components/ConicasShape'
 import { GraficadorLibreShapeUtil } from '@/components/GraficadorLibreShape'
 import { SuperficieDerivadas3DShapeUtil } from '@/components/SuperficieDerivadas3DShape'
 import { IntegralDoble3DShapeUtil } from '@/components/IntegralDoble3DShape'
+import { CambioVariables3DShapeUtil } from '@/components/CambioVariables3DShape'
 import { assetsEnLinea } from '@/lib/assetsEnLinea'
 import { urlDeSincronizacion } from '@/lib/sala'
 import { BarraClase } from '@/components/BarraClase'
@@ -33,6 +34,7 @@ const misBloquesMatematicos = [
   GraficadorLibreShapeUtil,
   SuperficieDerivadas3DShapeUtil,
   IntegralDoble3DShapeUtil,
+  CambioVariables3DShapeUtil,
 ]
 
 // useSync necesita todos los utils (los de tldraw + los nuestros) para armar el schema de la sala.
@@ -62,6 +64,7 @@ const LABORATORIOS: Laboratorio[] = [
   { categoria: 'Cálculo II', label: 'Polares', tipo: 'coordenadas-polares', w: 580, h: 700 },
   { categoria: 'Cálculo II', label: 'Superficies y derivadas', tipo: 'superficie-3d', w: 640, h: 820 },
   { categoria: 'Cálculo II', label: 'Integral doble', tipo: 'integral-doble-3d', w: 640, h: 820 },
+  { categoria: 'Cálculo II', label: 'Cambio de variables', tipo: 'cambio-variables-3d', w: 640, h: 870 },
   { categoria: 'Graficador', label: 'Graficador libre', tipo: 'graficador-libre', w: 640, h: 760 },
 ]
 
