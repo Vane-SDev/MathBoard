@@ -124,7 +124,7 @@ const REGIONES: Record<Region, { label: string; V: number; textoV: string; porOr
 
 const ORDEN_PRESETS: Preset[] = ['paraboloide', 'plano', 'silla']
 const ORDEN_REGIONES: Region[] = ['triangulo', 'parabola', 'circulo']
-const VISTA_3D: Camara = { acimut: -0.6, elevacion: 0.55 }
+const VISTA_3D: Camara = { acimut: -2.2, elevacion: 0.55 }
 const VISTA_PISO: Camara = { acimut: 0, elevacion: (88 * PI) / 180 }
 const VB_W = 600
 const VB_H = 450
@@ -180,7 +180,7 @@ function IntegralDoble({
     const sf = Math.sin(cam.acimut)
     const u = r.x * cf - r.y * sf
     const v = r.x * sf + r.y * cf
-    return { x: u * k, y: -(r.z * Math.cos(cam.elevacion) - v * Math.sin(cam.elevacion)) * k }
+    return { x: u * k, y: -(r.z * Math.cos(cam.elevacion) + v * Math.sin(cam.elevacion)) * k }
   }
   const pts = (qs: Vec3[]) =>
     qs

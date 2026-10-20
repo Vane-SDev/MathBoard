@@ -6,7 +6,11 @@ export type Cara = { pts: Vec3[]; color: string; opacidad?: number; borde?: stri
 export type Dominio = { min: number; max: number }
 type Fn2 = (x: number, y: number) => number
 
-/** Gira φ alrededor de z e inclina θ: X horizontal, Y vertical, prof crece hacia el observador */
+/**
+ * Gira φ alrededor de z e inclina θ: X horizontal, Y vertical, prof crece hacia el observador.
+ * Cámara en la dirección (−sen φ cos θ, −cos φ cos θ, sen θ): con φ = 0 mira de frente (x a la derecha, z arriba)
+ * y con θ = π/2 desde arriba (x a la derecha, y arriba). La terna x, y, z se ve dextrógira.
+ */
 export function proyectar(p: Vec3, cam: Camara): { X: number; Y: number; prof: number } {
   const cf = Math.cos(cam.acimut)
   const sf = Math.sin(cam.acimut)
@@ -14,7 +18,7 @@ export function proyectar(p: Vec3, cam: Camara): { X: number; Y: number; prof: n
   const st = Math.sin(cam.elevacion)
   const u = p.x * cf - p.y * sf
   const v = p.x * sf + p.y * cf
-  return { X: u, Y: p.z * ct - v * st, prof: v * ct + p.z * st }
+  return { X: u, Y: p.z * ct + v * st, prof: p.z * st - v * ct }
 }
 
 const normalizar = (v: Vec3): Vec3 => {
@@ -110,7 +114,7 @@ export function mallaSuperficie(f: Fn2, dom: Dominio, n: number, colorear: (z: n
 }
 
 /** Orden del pintor: primero lo más lejano (menor profundidad media) */
-export function ordenarPintor(caras: Cara[], cam: Camara): Cara[] {
+export function ordenarPintor<C extends Cara>(caras: C[], cam: Camara): C[] {
   return caras
     .map((c) => ({ c, p: c.pts.reduce((s, q) => s + proyectar(q, cam).prof, 0) / c.pts.length }))
     .sort((a, b) => a.p - b.p)
@@ -180,7 +184,7 @@ export function carasPrisma(x0: number, x1: number, y0: number, y1: number, zTop
 /** ¿La normal apunta a la cámara? Mayor prof = más adelante (ver ordenarPintor) */
 export function caraVisible(normal: Vec3, cam: Camara): boolean {
   const ct = Math.cos(cam.elevacion)
-  const d = { x: Math.sin(cam.acimut) * ct, y: Math.cos(cam.acimut) * ct, z: Math.sin(cam.elevacion) }
+  const d = { x: -Math.sin(cam.acimut) * ct, y: -Math.cos(cam.acimut) * ct, z: Math.sin(cam.elevacion) }
   return normal.x * d.x + normal.y * d.y + normal.z * d.z > 0
 }
 
@@ -258,3 +262,141 @@ export function paredFeta(
   }
   return caras
 }
+
+// ── Cambio de variables (Lab 12) ──
+
+/** Coordenadas curvilíneas (u, v, w), en el orden que hace positivo al Jacobiano */
+export type Terna = [number, number, number]
+export type Eje = 0 | 1 | 2
+
+/** X(u, v, w) y sus derivadas parciales: columnas de la matriz Jacobiana */
+export type Cambio = {
+  X: (q: Terna) => Vec3
+  columnas: (q: Terna) => [Vec3, Vec3, Vec3]
+}
+
+/** Quad de una cara de la celda: familia = coordenada fija; aristas = lados que caen en el borde de la cara */
+export type CaraCelda = CaraConNormal & { familia: Eje; aristas: [Vec3, Vec3][] }
+
+export const cruz = (a: Vec3, b: Vec3): Vec3 => ({
+  x: a.y * b.z - a.z * b.y,
+  y: a.z * b.x - a.x * b.z,
+  z: a.x * b.y - a.y * b.x,
+})
+
+export const punto = (a: Vec3, b: Vec3): number => a.x * b.x + a.y * b.y + a.z * b.z
+
+const EPS_NORMAL = 1e-9
+
+/** (i, j, l) cíclico: ∂ⱼX × ∂ₗX apunta hacia donde crece la coordenada i (porque ∂ᵢX · (∂ⱼX × ∂ₗX) = det J > 0) */
+const ciclo = (i: Eje): [Eje, Eje] => [((i + 1) % 3) as Eje, ((i + 2) % 3) as Eje]
+
+/**
+ * Celda curva X([q0, q0 + d]): 6 caras (coordenada i fija en q0ᵢ o q0ᵢ + dᵢ), cada una en k×k quads.
+ * Normal exterior por quad: ±(∂ⱼX × ∂ₗX) en el centro del quad, + en la cara de arriba y − en la de abajo.
+ * Si ese producto vectorial se anula (r = 0, ρ = 0, φ = 0 o π) la cara es una arista o un punto: se omite.
+ */
+export function carasCelda(c: Cambio, q0: Terna, d: Terna, k: number): CaraCelda[] {
+  const caras: CaraCelda[] = []
+  for (const i of [0, 1, 2] as const) {
+    const [j, l] = ciclo(i)
+    for (const extremo of [0, 1] as const) {
+      const signo = extremo === 1 ? 1 : -1
+      const terna = (sj: number, sl: number): Terna => {
+        const q: Terna = [q0[0], q0[1], q0[2]]
+        q[i] = q0[i] + extremo * d[i]
+        q[j] = q0[j] + sj * d[j]
+        q[l] = q0[l] + sl * d[l]
+        return q
+      }
+      for (let a = 0; a < k; a++) {
+        for (let b = 0; b < k; b++) {
+          const cols = c.columnas(terna((a + 0.5) / k, (b + 0.5) / k))
+          const n = cruz(cols[j], cols[l])
+          const m = Math.hypot(n.x, n.y, n.z)
+          if (m < EPS_NORMAL) continue
+          const pts = [
+            terna(a / k, b / k),
+            terna((a + 1) / k, b / k),
+            terna((a + 1) / k, (b + 1) / k),
+            terna(a / k, (b + 1) / k),
+          ].map(c.X)
+          const aristas: [Vec3, Vec3][] = []
+          if (b === 0) aristas.push([pts[0], pts[1]])
+          if (a === k - 1) aristas.push([pts[1], pts[2]])
+          if (b === k - 1) aristas.push([pts[2], pts[3]])
+          if (a === 0) aristas.push([pts[3], pts[0]])
+          caras.push({
+            pts,
+            normal: { x: (signo * n.x) / m, y: (signo * n.y) / m, z: (signo * n.z) / m },
+            familia: i,
+            aristas,
+            color: '',
+          })
+        }
+      }
+    }
+  }
+  return caras
+}
+
+/** Superficie coordenada: la coordenada i fija en valor, las otras dos (en orden cíclico) recorren sus rangos */
+export function superficieCoordenada(
+  c: Cambio,
+  i: Eje,
+  valor: number,
+  rangoJ: Dominio,
+  rangoL: Dominio,
+  nj: number,
+  nl: number,
+): CaraConNormal[] {
+  const [j, l] = ciclo(i)
+  const terna = (sj: number, sl: number): Terna => {
+    const q: Terna = [0, 0, 0]
+    q[i] = valor
+    q[j] = rangoJ.min + sj * (rangoJ.max - rangoJ.min)
+    q[l] = rangoL.min + sl * (rangoL.max - rangoL.min)
+    return q
+  }
+  const caras: CaraConNormal[] = []
+  for (let a = 0; a < nj; a++) {
+    for (let b = 0; b < nl; b++) {
+      const cols = c.columnas(terna((a + 0.5) / nj, (b + 0.5) / nl))
+      const n = cruz(cols[j], cols[l])
+      const m = Math.hypot(n.x, n.y, n.z)
+      if (m < EPS_NORMAL) continue
+      const pts = [terna(a / nj, b / nl), terna((a + 1) / nj, b / nl), terna((a + 1) / nj, (b + 1) / nl), terna(a / nj, (b + 1) / nl)].map(c.X)
+      caras.push({ pts, normal: { x: n.x / m, y: n.y / m, z: n.z / m }, color: '' })
+    }
+  }
+  return caras
+}
+
+/** Curva coordenada: solo la coordenada i varía de desde a hasta, las otras quedan como en q0 */
+export function curvaCoordenada(c: Cambio, q0: Terna, i: Eje, desde: number, hasta: number, n = 32): Vec3[] {
+  return Array.from({ length: n + 1 }, (_, s) => {
+    const q: Terna = [q0[0], q0[1], q0[2]]
+    q[i] = desde + ((hasta - desde) * s) / n
+    return c.X(q)
+  })
+}
+
+/** Paralelepípedo tangente P + Σ sᵢ·vᵢ con sᵢ ∈ [0, 1]: sus 12 aristas */
+export function aristasParalelepipedo(P: Vec3, v: [Vec3, Vec3, Vec3]): [Vec3, Vec3][] {
+  const V = (s0: number, s1: number, s2: number): Vec3 => ({
+    x: P.x + s0 * v[0].x + s1 * v[1].x + s2 * v[2].x,
+    y: P.y + s0 * v[0].y + s1 * v[1].y + s2 * v[2].y,
+    z: P.z + s0 * v[0].z + s1 * v[1].z + s2 * v[2].z,
+  })
+  const aristas: [Vec3, Vec3][] = []
+  for (const a of [0, 1]) {
+    for (const b of [0, 1]) {
+      aristas.push([V(0, a, b), V(1, a, b)], [V(a, 0, b), V(a, 1, b)], [V(a, b, 0), V(a, b, 1)])
+    }
+  }
+  return aristas
+}
+
+/** Color base rgb oscurecido por el factor de sombra */
+export const tono = (rgb: Terna, factor: number): string =>
+  `rgb(${rgb.map((x) => Math.round(x * factor)).join(',')})`

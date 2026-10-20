@@ -9,6 +9,7 @@ import {
 } from '@tldraw/tlschema'
 import type { Metodo } from '../lib/plot'
 import type { Orden } from '../lib/surface3d'
+import type { SistemaCoordenadas } from '../lib/coordenadas'
 
 // ── binomio-cuadrado ──
 export type BinomioProps = {
@@ -361,7 +362,7 @@ export const superficieDerivadas3DDefaults: SuperficieDerivadas3DProps = {
   modo: 'parciales',
   x0: 1,
   y0: 0.5,
-  acimut: -0.6,
+  acimut: -2.2,
   elevacion: 0.55,
   zoom: 1,
   verNivel: true,
@@ -430,7 +431,7 @@ export const integralDoble3DDefaults: IntegralDoble3DProps = {
   region: 'parabola',
   orden: 'dydx',
   t: 0.5,
-  acimut: -0.6,
+  acimut: -2.2,
   elevacion: 0.55,
   zoom: 1,
   girando: false,
@@ -448,6 +449,63 @@ export const integralDoble3DMigrations = createShapePropsMigrationSequence({
   ],
 })
 
+// ── cambio-variables-3d ──
+export type ModoCambioVariables = 'jacobiano' | 'superficies'
+
+export type CambioVariables3DProps = {
+  w: number
+  h: number
+  sistema: SistemaCoordenadas
+  modo: ModoCambioVariables
+  r: number
+  rho: number
+  theta: number
+  phi: number
+  z0: number
+  delta: number
+  verLineal: boolean
+  acimut: number
+  elevacion: number
+  zoom: number
+  girando: boolean
+}
+
+export const cambioVariables3DProps: RecordProps<TLShape<'cambio-variables-3d'>> = {
+  w: T.number,
+  h: T.number,
+  sistema: T.literalEnum('polares', 'cilindricas', 'esfericas'),
+  modo: T.literalEnum('jacobiano', 'superficies'),
+  r: T.number,
+  rho: T.number,
+  theta: T.number,
+  phi: T.number,
+  z0: T.number,
+  delta: T.number,
+  verLineal: T.boolean,
+  acimut: T.number,
+  elevacion: T.number,
+  zoom: T.number,
+  girando: T.boolean,
+}
+
+export const cambioVariables3DDefaults: CambioVariables3DProps = {
+  w: 640,
+  h: 870,
+  sistema: 'esfericas',
+  modo: 'jacobiano',
+  r: 1.5,
+  rho: 2,
+  theta: Math.PI / 4,
+  phi: Math.PI / 3,
+  z0: 0,
+  delta: 0.5,
+  verLineal: true,
+  acimut: -2.2,
+  elevacion: 0.45,
+  zoom: 1,
+  girando: false,
+}
+
 declare module 'tldraw' {
   export interface TLGlobalShapePropsMap {
     'binomio-cuadrado': BinomioProps
@@ -461,6 +519,7 @@ declare module 'tldraw' {
     'graficador-libre': GraficadorLibreProps
     'superficie-3d': SuperficieDerivadas3DProps
     'integral-doble-3d': IntegralDoble3DProps
+    'cambio-variables-3d': CambioVariables3DProps
   }
 }
 
@@ -476,4 +535,5 @@ export const LAB_SCHEMAS = {
   'graficador-libre': { props: graficadorLibreProps },
   'superficie-3d': { props: superficieDerivadas3DProps, migrations: superficieDerivadas3DMigrations },
   'integral-doble-3d': { props: integralDoble3DProps, migrations: integralDoble3DMigrations },
+  'cambio-variables-3d': { props: cambioVariables3DProps },
 } as const

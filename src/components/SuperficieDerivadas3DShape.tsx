@@ -110,7 +110,7 @@ const PRESETS: Record<Preset, PresetDef> = {
 const ORDEN: Preset[] = ['paraboloide', 'silla', 'ondas', 'gaussiana']
 const DOM = { min: -2.5, max: 2.5 }
 const VISTAS: { label: string; cam: Camara }[] = [
-  { label: 'Iso', cam: { acimut: -0.6, elevacion: 0.55 } },
+  { label: 'Iso', cam: { acimut: -2.2, elevacion: 0.55 } },
   { label: 'Frente', cam: { acimut: 0, elevacion: 0.1 } },
   { label: 'Arriba', cam: { acimut: 0, elevacion: PI / 2 } },
 ]
