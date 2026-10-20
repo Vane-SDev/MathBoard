@@ -11,6 +11,9 @@ import { PolaresShapeUtil } from '@/components/PolaresShape'
 import { DerivadaShapeUtil } from '@/components/DerivadaShape'
 import { TrigonometriaShapeUtil } from '@/components/TrigonometriaShape'
 import { ConicasShapeUtil } from '@/components/ConicasShape'
+import { GraficadorLibreShapeUtil } from '@/components/GraficadorLibreShape'
+import { SuperficieDerivadas3DShapeUtil } from '@/components/SuperficieDerivadas3DShape'
+import { IntegralDoble3DShapeUtil } from '@/components/IntegralDoble3DShape'
 
 // 1. Declaramos el array AFUERA del componente para evitar re-renders
 const misBloquesMatematicos = [
@@ -22,13 +25,16 @@ const misBloquesMatematicos = [
   DerivadaShapeUtil,
   TrigonometriaShapeUtil,
   ConicasShapeUtil,
+  GraficadorLibreShapeUtil,
+  SuperficieDerivadas3DShapeUtil,
+  IntegralDoble3DShapeUtil,
 ]
 
-type Categoria = 'Álgebra y Geometría' | 'Cálculo I' | 'Cálculo II'
+type Categoria = 'Álgebra y Geometría' | 'Cálculo I' | 'Cálculo II' | 'Graficador'
 
 type Laboratorio = { categoria: Categoria; label: string; tipo: TLShape['type']; w: number; h: number }
 
-const CATEGORIAS: Categoria[] = ['Álgebra y Geometría', 'Cálculo I', 'Cálculo II']
+const CATEGORIAS: Categoria[] = ['Álgebra y Geometría', 'Cálculo I', 'Cálculo II', 'Graficador']
 
 // w/h: tamaño usado para centrar el bloque en el viewport
 const LABORATORIOS: Laboratorio[] = [
@@ -40,6 +46,9 @@ const LABORATORIOS: Laboratorio[] = [
   { categoria: 'Cálculo I', label: 'Derivada', tipo: 'derivada-estudio', w: 580, h: 700 },
   { categoria: 'Cálculo I', label: 'Integral', tipo: 'integral-simple', w: 580, h: 680 },
   { categoria: 'Cálculo II', label: 'Polares', tipo: 'coordenadas-polares', w: 580, h: 700 },
+  { categoria: 'Cálculo II', label: 'Superficies y derivadas', tipo: 'superficie-3d', w: 640, h: 820 },
+  { categoria: 'Cálculo II', label: 'Integral doble', tipo: 'integral-doble-3d', w: 640, h: 820 },
+  { categoria: 'Graficador', label: 'Graficador libre', tipo: 'graficador-libre', w: 640, h: 760 },
 ]
 
 export default function PizarraPage() {
@@ -69,7 +78,7 @@ export default function PizarraPage() {
   return (
     <main className="fixed inset-0 w-screen h-screen bg-zinc-950">
       {/* Barra flotante superior de tu marca */}
-      <div className="absolute top-3 inset-x-0 mx-auto w-fit max-w-[calc(100vw-2rem)] z-50 flex flex-wrap items-center justify-center gap-1.5 bg-zinc-900/90 border border-purple-500/40 px-3 py-1.5 rounded-2xl shadow-lg backdrop-blur-md">
+      <div className="absolute top-16 sm:top-3 inset-x-0 mx-auto w-fit max-w-[calc(100vw-2rem)] z-50 flex flex-wrap items-center justify-center gap-1.5 bg-zinc-900/90 border border-purple-500/40 px-3 py-1.5 rounded-2xl shadow-lg backdrop-blur-md">
         <span className="text-xs font-bold text-purple-300 tracking-wide mr-1 whitespace-nowrap">
           Laboratorios:
         </span>

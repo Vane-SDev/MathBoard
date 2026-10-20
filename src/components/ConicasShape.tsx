@@ -216,7 +216,7 @@ export class ConicasShapeUtil extends BaseBoxShapeUtil<ConicasShape> {
       clase: string,
     ) => (
       <label className={`flex items-center justify-between gap-2 font-mono ${clase}`}>
-        {etiqueta}
+        <span className="w-14 shrink-0 whitespace-nowrap font-mono">{etiqueta}</span>
         <input
           type="range"
           min={min}
@@ -249,7 +249,7 @@ export class ConicasShapeUtil extends BaseBoxShapeUtil<ConicasShape> {
           ))}
         </div>
 
-        <div className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="w-full aspect-[4/3] shrink-0 rounded-lg border border-zinc-800 bg-zinc-950">
           <svg viewBox={`${bx} ${by} ${bw} ${bh}`} className="w-full h-full border border-zinc-800 rounded">
             <defs>
               <clipPath id={`clip-${uid}`}>

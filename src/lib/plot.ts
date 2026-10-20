@@ -176,3 +176,66 @@ export function pathParametrico(fx: Fn, fy: Fn, t0: number, t1: number, u: numbe
   }
   return d
 }
+
+/** Raíces de f en [a, b]: cambios de signo (bisección) + mínimos de |f| que tocan 0 (ternaria) */
+export function raicesNumericas(f: Fn, a: number, b: number, n = 400): number[] {
+  const xs = Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n)
+  const ys = xs.map(f)
+  const fin = (y: number) => Number.isFinite(y)
+  const raices: number[] = []
+
+  for (let i = 0; i < n; i++) {
+    const y0 = ys[i]
+    const y1 = ys[i + 1]
+    if (!fin(y0) || !fin(y1)) continue
+    if (y0 === 0) {
+      raices.push(xs[i])
+      continue
+    }
+    if (y0 * y1 >= 0) continue
+    let lo = xs[i]
+    let hi = xs[i + 1]
+    let flo = y0
+    for (let k = 0; k < 50; k++) {
+      const m = (lo + hi) / 2
+      const fm = f(m)
+      if (flo * fm <= 0) hi = m
+      else {
+        lo = m
+        flo = fm
+      }
+    }
+    const m = (lo + hi) / 2
+    if (Math.abs(f(m)) < 1e-6) raices.push(m)
+  }
+  if (fin(ys[n]) && ys[n] === 0) raices.push(xs[n])
+
+  for (let i = 1; i < n; i++) {
+    const [ya, yb, yc] = [ys[i - 1], ys[i], ys[i + 1]]
+    if (!fin(ya) || !fin(yb) || !fin(yc)) continue
+    if (ya * yb < 0 || yb * yc < 0) continue
+    if (Math.abs(yb) > Math.abs(ya) || Math.abs(yb) > Math.abs(yc)) continue
+    let lo = xs[i - 1]
+    let hi = xs[i + 1]
+    for (let k = 0; k < 60; k++) {
+      const m1 = lo + (hi - lo) / 3
+      const m2 = hi - (hi - lo) / 3
+      if (Math.abs(f(m1)) < Math.abs(f(m2))) hi = m2
+      else lo = m1
+    }
+    const m = (lo + hi) / 2
+    if (Math.abs(f(m)) < 1e-6) raices.push(m)
+  }
+
+  const tol = 1e-6 * (b - a)
+  return raices
+    .sort((p, q) => p - q)
+    .filter((r, i, arr) => i === 0 || r - arr[i - 1] > tol)
+}
+
+/** Paso de grilla 1, 2 o 5 × 10^k cercano a rango/8 */
+export function pasoLindo(rango: number): number {
+  const r = rango / 8
+  const base = 10 ** Math.floor(Math.log10(r))
+  return [1, 2, 5, 10].map((m) => m * base).reduce((p, q) => (Math.abs(Math.log(q / r)) < Math.abs(Math.log(p / r)) ? q : p))
+}
