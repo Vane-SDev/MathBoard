@@ -1,8 +1,8 @@
-// Parser de expresiones en x, sin eval: tokenizer + descenso recursivo → closures
+// Parser de expresiones en x, y, z, sin eval: tokenizer + descenso recursivo → closures
 
 type Fn1 = (x: number) => number
-type Fn = (x: number, y: number) => number
-type Variable = 'x' | 'y'
+type Fn = (x: number, y: number, z: number) => number
+export type Variable = 'x' | 'y' | 'z'
 
 const FUNCIONES = {
   sen: Math.sin,
@@ -73,11 +73,11 @@ function tokenizar(texto: string): Token[] {
       const ini = i
       while (i < texto.length && /[a-zA-ZáéíóúñÑπ]/.test(texto[i])) i++
       const w = texto.slice(ini, i).toLowerCase()
-            if (esConst(w)) tokens.push({ tipo: 'const', nombre: w, pos: ini })
+      if (esConst(w)) tokens.push({ tipo: 'const', nombre: w, pos: ini })
       else if (esFn(w)) tokens.push({ tipo: 'fn', nombre: w, pos: ini })
-      // 'xy' o 'xyy': una variable por letra; la multiplicación implícita las junta
-      else if (/^[xy]+$/.test(w)) {
-        for (let k = 0; k < w.length; k++) tokens.push({ tipo: 'var', nombre: w[k] === 'x' ? 'x' : 'y', pos: ini + k })
+      // 'xy' o 'yzz': una variable por letra; la multiplicación implícita las junta
+      else if (/^[xyz]+$/.test(w)) {
+        for (let k = 0; k < w.length; k++) tokens.push({ tipo: 'var', nombre: w[k] as Variable, pos: ini + k })
       }
       else throw new ErrorParseo(`No reconozco '${texto.slice(ini, i)}'`, ini)
     } else if (OPS.includes(ch)) {
@@ -161,7 +161,7 @@ function analizar(tokens: Token[]): Nodo {
       i++
       return { k: 'num', v: t.valor }
     }
-        if (t.tipo === 'var') {
+    if (t.tipo === 'var') {
       i++
       return { k: 'var', nombre: t.nombre }
     }
@@ -208,30 +208,30 @@ function compilar(n: Nodo): Fn {
       return () => v
     }
     case 'var':
-      return n.nombre === 'x' ? (x) => x : (_x, y) => y
+      return n.nombre === 'x' ? (x) => x : n.nombre === 'y' ? (_x, y) => y : (_x, _y, z) => z
     case 'neg': {
       const a = compilar(n.a)
-      return (x, y) => -a(x, y)
+      return (x, y, z) => -a(x, y, z)
     }
     case 'fn': {
       const g: Fn1 = FUNCIONES[n.nombre]
       const a = compilar(n.a)
-      return (x, y) => g(a(x, y))
+      return (x, y, z) => g(a(x, y, z))
     }
     case 'bin': {
       const a = compilar(n.a)
       const b = compilar(n.b)
       switch (n.op) {
         case '+':
-          return (x, y) => a(x, y) + b(x, y)
+          return (x, y, z) => a(x, y, z) + b(x, y, z)
         case '-':
-          return (x, y) => a(x, y) - b(x, y)
+          return (x, y, z) => a(x, y, z) - b(x, y, z)
         case '*':
-          return (x, y) => a(x, y) * b(x, y)
+          return (x, y, z) => a(x, y, z) * b(x, y, z)
         case '/':
-          return (x, y) => a(x, y) / b(x, y)
+          return (x, y, z) => a(x, y, z) / b(x, y, z)
         case '^':
-          return (x, y) => Math.pow(a(x, y), b(x, y))
+          return (x, y, z) => Math.pow(a(x, y, z), b(x, y, z))
       }
     }
   }
@@ -241,21 +241,39 @@ export function parsear(texto: string): Parseo {
   if (texto.trim() === '') return { ok: false, error: 'Expresión vacía', pos: 0 }
   try {
     const tokens = tokenizar(texto)
-    const y = tokens.find((t) => t.tipo === 'var' && t.nombre === 'y')
-    if (y) return { ok: false, error: 'Esta función solo usa x', pos: y.pos }
+    const otra = tokens.find((t) => t.tipo === 'var' && t.nombre !== 'x')
+    if (otra) return { ok: false, error: 'Esta función solo usa x', pos: otra.pos }
     const g = compilar(analizar(tokens))
-    return { ok: true, f: (x) => g(x, 0) }
+    return { ok: true, f: (x) => g(x, 0, 0) }
   } catch (e) {
     if (e instanceof ErrorParseo) return { ok: false, error: e.message, pos: e.pos }
     throw e
   }
 }
 
-/** Como parsear, pero acepta x e y: devuelve f(x, y) para superficies z = f(x, y) */
-export function parsear2(texto: string): Parseo2 {
+/**
+ * Función de dos variables para superficies: vars dice cuáles se permiten y en qué orden,
+ * ['x', 'y'] para z = f(x, y), ['y', 'z'] para x = f(y, z). Devuelve f(u, v) con u = vars[0], v = vars[1].
+ */
+export function parsear2(texto: string, vars: readonly [Variable, Variable] = ['x', 'y']): Parseo2 {
   if (texto.trim() === '') return { ok: false, error: 'Expresión vacía', pos: 0 }
   try {
-    return { ok: true, f: compilar(analizar(tokenizar(texto))) }
+    const tokens = tokenizar(texto)
+    const otra = tokens.find((t) => t.tipo === 'var' && !vars.includes(t.nombre))
+    if (otra) return { ok: false, error: `Usá solo las variables ${vars[0]}, ${vars[1]}`, pos: otra.pos }
+    const g = compilar(analizar(tokens))
+    // Posición de x, y, z dentro de [u, v, 0]: la variable que no se usa vale 0
+    const lugar = (w: Variable) => (w === vars[0] ? 0 : w === vars[1] ? 1 : 2)
+    const ix = lugar('x')
+    const iy = lugar('y')
+    const iz = lugar('z')
+    return {
+      ok: true,
+      f: (u, v) => {
+        const t = [u, v, 0]
+        return g(t[ix], t[iy], t[iz])
+      },
+    }
   } catch (e) {
     if (e instanceof ErrorParseo) return { ok: false, error: e.message, pos: e.pos }
     throw e

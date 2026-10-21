@@ -326,10 +326,13 @@ export const graficadorLibreDefaults: GraficadorLibreProps = {
 
 // ── graficador-3d ──
 export type EscalaGraficador3D = 'ajustada' | 'real'
+/** Variable que se calcula: z = f(x, y), x = f(y, z) o y = f(x, z). exprZ, zAuto, zMin y zMax se refieren a ella. */
+export type DespejadaGraficador3D = 'z' | 'x' | 'y'
 
 export type Graficador3DProps = {
   w: number
   h: number
+  despejada: DespejadaGraficador3D
   exprZ: string
   rango: number
   zAuto: boolean
@@ -340,12 +343,17 @@ export type Graficador3DProps = {
   elevacion: number
   zoom: number
   verNivel: boolean
+  nivelEnAltura: boolean
+  verSuperficie: boolean
+  verCorte: boolean
+  corte: number
   girando: boolean
 }
 
 export const graficador3DProps: RecordProps<TLShape<'graficador-3d'>> = {
   w: T.number,
   h: T.number,
+  despejada: T.literalEnum('z', 'x', 'y'),
   exprZ: T.string,
   rango: T.number,
   zAuto: T.boolean,
@@ -356,12 +364,17 @@ export const graficador3DProps: RecordProps<TLShape<'graficador-3d'>> = {
   elevacion: T.number,
   zoom: T.number,
   verNivel: T.boolean,
+  nivelEnAltura: T.boolean,
+  verSuperficie: T.boolean,
+  verCorte: T.boolean,
+  corte: T.number,
   girando: T.boolean,
 }
 
 export const graficador3DDefaults: Graficador3DProps = {
   w: 640,
-  h: 820,
+  h: 840,
+  despejada: 'z',
   exprZ: 'sen(x)*cos(y)',
   rango: 3,
   zAuto: true,
@@ -372,8 +385,32 @@ export const graficador3DDefaults: Graficador3DProps = {
   elevacion: 0.55,
   zoom: 1,
   verNivel: true,
+  nivelEnAltura: false,
+  verSuperficie: true,
+  verCorte: false,
+  corte: 0.5,
   girando: false,
 }
+
+const GRAFICADOR_3D_V1 = ['despejada', 'nivelEnAltura', 'verSuperficie', 'verCorte', 'corte']
+const graficador3DVersiones = createShapePropsMigrationIds('graficador-3d', { DespejadaYCortes: 1 })
+
+export const graficador3DMigrations = createShapePropsMigrationSequence({
+  sequence: [
+    {
+      id: graficador3DVersiones.DespejadaYCortes,
+      up: (props) => ({
+        ...props,
+        despejada: 'z',
+        nivelEnAltura: false,
+        verSuperficie: true,
+        verCorte: false,
+        corte: 0.5,
+      }),
+      down: (props) => Object.fromEntries(Object.entries(props).filter(([clave]) => !GRAFICADOR_3D_V1.includes(clave))),
+    },
+  ],
+})
 
 // ── superficie-3d ──
 export type PresetSuperficie = 'paraboloide' | 'silla' | 'ondas' | 'gaussiana'
@@ -640,7 +677,7 @@ export const LAB_SCHEMAS = {
   'trigonometria-circulo': { props: trigonometriaProps },
   conicas: { props: conicasProps },
   'graficador-libre': { props: graficadorLibreProps },
-  'graficador-3d': { props: graficador3DProps },
+  'graficador-3d': { props: graficador3DProps, migrations: graficador3DMigrations },
   'superficie-3d': { props: superficieDerivadas3DProps, migrations: superficieDerivadas3DMigrations },
   'integral-doble-3d': { props: integralDoble3DProps, migrations: integralDoble3DMigrations },
   'cambio-variables-3d': { props: cambioVariables3DProps },
