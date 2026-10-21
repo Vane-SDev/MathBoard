@@ -324,6 +324,57 @@ export const graficadorLibreDefaults: GraficadorLibreProps = {
   escala: 4,
 }
 
+// ── graficador-3d ──
+export type EscalaGraficador3D = 'ajustada' | 'real'
+
+export type Graficador3DProps = {
+  w: number
+  h: number
+  exprZ: string
+  rango: number
+  zAuto: boolean
+  zMin: number
+  zMax: number
+  escala: EscalaGraficador3D
+  acimut: number
+  elevacion: number
+  zoom: number
+  verNivel: boolean
+  girando: boolean
+}
+
+export const graficador3DProps: RecordProps<TLShape<'graficador-3d'>> = {
+  w: T.number,
+  h: T.number,
+  exprZ: T.string,
+  rango: T.number,
+  zAuto: T.boolean,
+  zMin: T.number,
+  zMax: T.number,
+  escala: T.literalEnum('ajustada', 'real'),
+  acimut: T.number,
+  elevacion: T.number,
+  zoom: T.number,
+  verNivel: T.boolean,
+  girando: T.boolean,
+}
+
+export const graficador3DDefaults: Graficador3DProps = {
+  w: 640,
+  h: 820,
+  exprZ: 'sen(x)*cos(y)',
+  rango: 3,
+  zAuto: true,
+  zMin: -2,
+  zMax: 2,
+  escala: 'ajustada',
+  acimut: -2.2,
+  elevacion: 0.55,
+  zoom: 1,
+  verNivel: true,
+  girando: false,
+}
+
 // ── superficie-3d ──
 export type PresetSuperficie = 'paraboloide' | 'silla' | 'ondas' | 'gaussiana'
 export type ModoSuperficie = 'parciales' | 'gradiente'
@@ -569,6 +620,7 @@ declare module 'tldraw' {
     'trigonometria-circulo': TrigonometriaProps
     conicas: ConicasProps
     'graficador-libre': GraficadorLibreProps
+    'graficador-3d': Graficador3DProps
     'superficie-3d': SuperficieDerivadas3DProps
     'integral-doble-3d': IntegralDoble3DProps
     'cambio-variables-3d': CambioVariables3DProps
@@ -588,6 +640,7 @@ export const LAB_SCHEMAS = {
   'trigonometria-circulo': { props: trigonometriaProps },
   conicas: { props: conicasProps },
   'graficador-libre': { props: graficadorLibreProps },
+  'graficador-3d': { props: graficador3DProps },
   'superficie-3d': { props: superficieDerivadas3DProps, migrations: superficieDerivadas3DMigrations },
   'integral-doble-3d': { props: integralDoble3DProps, migrations: integralDoble3DMigrations },
   'cambio-variables-3d': { props: cambioVariables3DProps },

@@ -122,11 +122,16 @@ export function ordenarPintor<C extends Cara>(caras: C[], cam: Camara): C[] {
 }
 
 /** Marching squares: segmentos de las curvas f = nivel, apoyados en z = zPiso */
-export function curvasNivel(f: Fn2, dom: Dominio, n: number, niveles: number[], zPiso: number): [Vec3, Vec3][] {
+export function curvasNivel(
+  f: Fn2,
+  dom: Dominio,
+  n: number,
+  niveles: number[],
+  zPiso: number,
+  muestras?: number[][],
+): [Vec3, Vec3][] {
   const h = (dom.max - dom.min) / n
-  const val: number[][] = Array.from({ length: n + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => f(dom.min + i * h, dom.min + j * h)),
-  )
+  const val = muestras ?? muestrear(f, dom, n)
   const segs: [Vec3, Vec3][] = []
   for (const nivel of niveles) {
     for (let i = 0; i < n; i++) {
@@ -400,3 +405,107 @@ export function aristasParalelepipedo(P: Vec3, v: [Vec3, Vec3, Vec3]): [Vec3, Ve
 /** Color base rgb oscurecido por el factor de sombra */
 export const tono = (rgb: Terna, factor: number): string =>
   `rgb(${rgb.map((x) => Math.round(x * factor)).join(',')})`
+
+// ── Graficador 3D: z = f(x, y) escrita por la persona ──
+
+/** Matriz (n+1)×(n+1) de f sobre dom × dom: val[i][j] = f(min + iΔ, min + jΔ), con Δ = (max − min)/n */
+export function muestrear(f: Fn2, dom: Dominio, n: number): number[][] {
+  const paso = (dom.max - dom.min) / n
+  return Array.from({ length: n + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => f(dom.min + i * paso, dom.min + j * paso)),
+  )
+}
+
+/**
+ * Ventana en z: percentiles 2 % y 98 % de los valores finitos, para que un pico aislado (1/(x² + y²))
+ * no aplaste el resto. Si el extremo real está cerca del percentil (no es un pico), se usa el real.
+ * Margen de 5 % de cada lado. null si f no está definida en ningún nodo.
+ */
+export function ventanaZ(val: number[][]): Dominio | null {
+  const z = val.flat().filter(Number.isFinite).sort((a, b) => a - b)
+  if (z.length === 0) return null
+  const percentil = (p: number) => z[Math.round(p * (z.length - 1))]
+  const p2 = percentil(0.02)
+  const p98 = percentil(0.98)
+  const ancho = p98 - p2
+  if (ancho < 1e-6) return { min: p2 - 1, max: p2 + 1 }
+  const min = p2 - z[0] <= ancho / 2 ? z[0] : p2
+  const max = z[z.length - 1] - p98 <= ancho / 2 ? z[z.length - 1] : p98
+  const margen = 0.05 * (max - min)
+  return { min: min - margen, max: max + margen }
+}
+
+/** Sutherland-Hodgman contra un plano z = c: se queda con los puntos donde dentro(z) */
+function recortarPlano(pts: Vec3[], c: number, dentro: (z: number) => boolean): Vec3[] {
+  const out: Vec3[] = []
+  for (let k = 0; k < pts.length; k++) {
+    const A = pts[k]
+    const B = pts[(k + 1) % pts.length]
+    if (dentro(A.z)) out.push(A)
+    if (dentro(A.z) !== dentro(B.z)) {
+      // El lado AB cruza el plano: t = (c − zA)/(zB − zA), P = A + t(B − A)
+      const t = (c - A.z) / (B.z - A.z)
+      out.push({ x: A.x + t * (B.x - A.x), y: A.y + t * (B.y - A.y), z: c })
+    }
+  }
+  return out
+}
+
+/** Recorta un polígono a la franja zMin ≤ z ≤ zMax; [] si no queda nada */
+export function recortarZ(pts: Vec3[], zMin: number, zMax: number): Vec3[] {
+  const abajo = recortarPlano(pts, zMin, (z) => z >= zMin)
+  if (abajo.length < 3) return []
+  const arriba = recortarPlano(abajo, zMax, (z) => z <= zMax)
+  return arriba.length < 3 ? [] : arriba
+}
+
+/**
+ * Celdas de la malla de z = f(x, y) ya muestreada, recortadas a la ventana.
+ * Descarta las celdas con algún vértice indefinido (cuenta cuántas en `indefinidas`)
+ * y las que cruzan la ventana entera (un vértice arriba de zMax y otro abajo de zMin: asíntota).
+ */
+export function celdasExplicitas(
+  val: number[][],
+  dom: Dominio,
+  ventana: Dominio,
+): { celdas: Vec3[][]; indefinidas: number } {
+  const n = val.length - 1
+  const paso = (dom.max - dom.min) / n
+  const celdas: Vec3[][] = []
+  let indefinidas = 0
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const xa = dom.min + i * paso
+      const ya = dom.min + j * paso
+      const pts: Vec3[] = [
+        { x: xa, y: ya, z: val[i][j] },
+        { x: xa + paso, y: ya, z: val[i + 1][j] },
+        { x: xa + paso, y: ya + paso, z: val[i + 1][j + 1] },
+        { x: xa, y: ya + paso, z: val[i][j + 1] },
+      ]
+      if (pts.some((q) => !Number.isFinite(q.z))) {
+        indefinidas++
+        continue
+      }
+      if (pts.some((q) => q.z > ventana.max) && pts.some((q) => q.z < ventana.min)) continue
+      const recortada = recortarZ(pts, ventana.min, ventana.max)
+      if (recortada.length) celdas.push(recortada)
+    }
+  }
+  return { celdas, indefinidas }
+}
+
+/** Normal unitaria de un polígono plano o casi plano (método de Newell, sirve de 3 a 6 vértices) */
+export function normalPoligono(pts: Vec3[]): Vec3 {
+  let x = 0
+  let y = 0
+  let z = 0
+  for (let k = 0; k < pts.length; k++) {
+    const a = pts[k]
+    const b = pts[(k + 1) % pts.length]
+    x += (a.y - b.y) * (a.z + b.z)
+    y += (a.z - b.z) * (a.x + b.x)
+    z += (a.x - b.x) * (a.y + b.y)
+  }
+  return normalizar({ x, y, z })
+}

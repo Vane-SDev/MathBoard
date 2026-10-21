@@ -14,6 +14,7 @@ import { TrigonometriaShapeUtil } from '@/components/TrigonometriaShape'
 import { ConicasShapeUtil } from '@/components/ConicasShape'
 import { GraficadorLibreShapeUtil } from '@/components/GraficadorLibreShape'
 import { SuperficieDerivadas3DShapeUtil } from '@/components/SuperficieDerivadas3DShape'
+import { Graficador3DShapeUtil } from '@/components/Graficador3DShape'
 import { IntegralDoble3DShapeUtil } from '@/components/IntegralDoble3DShape'
 import { CambioVariables3DShapeUtil } from '@/components/CambioVariables3DShape'
 import { ReglaShapeUtil } from '@/components/ReglaShape'
@@ -38,6 +39,7 @@ const misBloquesMatematicos = [
   TrigonometriaShapeUtil,
   ConicasShapeUtil,
   GraficadorLibreShapeUtil,
+  Graficador3DShapeUtil,
   SuperficieDerivadas3DShapeUtil,
   IntegralDoble3DShapeUtil,
   CambioVariables3DShapeUtil,

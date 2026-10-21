@@ -29,6 +29,7 @@ const LABORATORIOS: Laboratorio[] = [
   { categoria: 'Cálculo II', label: 'Integral doble', tipo: 'integral-doble-3d', w: 640, h: 820 },
   { categoria: 'Cálculo II', label: 'Cambio de variables', tipo: 'cambio-variables-3d', w: 640, h: 870 },
   { categoria: 'Graficador', label: 'Graficador libre', tipo: 'graficador-libre', w: 640, h: 760 },
+  { categoria: 'Graficador', label: 'Graficador 3D', tipo: 'graficador-3d', w: 640, h: 820 },
 ]
 
 type Abierto = 'labs' | 'clase' | null
