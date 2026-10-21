@@ -10,7 +10,7 @@ import {
 import type { Metodo } from '../lib/plot'
 import type { Orden } from '../lib/surface3d'
 import type { SistemaCoordenadas } from '../lib/coordenadas'
-import { anchoRegla, ALTO_REGLA, medidasTransportador } from '../lib/geometria'
+import { anchoRegla, ALTO_REGLA, medidasEscuadra, medidasTransportador, type AngulosEscuadra } from '../lib/geometria'
 
 // ── binomio-cuadrado ──
 export type BinomioProps = {
@@ -543,6 +543,21 @@ export const transportadorDefaults: TransportadorProps = {
   completo: false,
 }
 
+// ── escuadra ──
+export type EscuadraProps = {
+  w: number
+  h: number
+  angulos: AngulosEscuadra
+}
+
+export const escuadraProps: RecordProps<TLShape<'escuadra'>> = {
+  w: T.number,
+  h: T.number,
+  angulos: T.literalEnum('45', '30-60'),
+}
+
+export const escuadraDefaults: EscuadraProps = { ...medidasEscuadra('45'), angulos: '45' }
+
 declare module 'tldraw' {
   export interface TLGlobalShapePropsMap {
     'binomio-cuadrado': BinomioProps
@@ -559,6 +574,7 @@ declare module 'tldraw' {
     'cambio-variables-3d': CambioVariables3DProps
     regla: ReglaProps
     transportador: TransportadorProps
+    escuadra: EscuadraProps
   }
 }
 
@@ -577,4 +593,5 @@ export const LAB_SCHEMAS = {
   'cambio-variables-3d': { props: cambioVariables3DProps },
   regla: { props: reglaProps },
   transportador: { props: transportadorProps },
+  escuadra: { props: escuadraProps },
 } as const

@@ -16,6 +16,7 @@ const CATEGORIAS: Categoria[] = ['Geometría', 'Álgebra y Geometría', 'Cálcul
 const LABORATORIOS: Laboratorio[] = [
   { categoria: 'Geometría', label: 'Regla', tipo: 'regla', w: 1008, h: 120 },
   { categoria: 'Geometría', label: 'Transportador', tipo: 'transportador', w: 480, h: 276 },
+  { categoria: 'Geometría', label: 'Escuadra', tipo: 'escuadra', w: 576, h: 576 },
   { categoria: 'Álgebra y Geometría', label: 'Cuadrado del Binomio', tipo: 'binomio-cuadrado', w: 380, h: 440 },
   { categoria: 'Álgebra y Geometría', label: 'Matriz 2x2', tipo: 'matriz-2x2', w: 520, h: 600 },
   { categoria: 'Álgebra y Geometría', label: 'Trigonometría', tipo: 'trigonometria-circulo', w: 780, h: 640 },
@@ -121,7 +122,7 @@ export function BarraSuperior() {
                     className={`text-xs text-left whitespace-nowrap font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                       conCompas ? 'bg-fuchsia-600 text-white' : 'text-white hover:bg-purple-600'
                     }`}
-                    title="Clavá la aguja, arrastrá para abrir y soltá para trazar. Esc para salir."
+                    title="Clavá la aguja y arrastrá para abrirlo; después arrastrá para un arco o tocá para el círculo. Esc para salir."
                   >
                     ✎ Compás (herramienta)
                   </button>

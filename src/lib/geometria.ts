@@ -39,3 +39,15 @@ export function polarSvg(cx: number, cy: number, r: number, grados: number): { x
   const a = (grados * Math.PI) / 180
   return { x: cx + r * Math.cos(a), y: cy - r * Math.sin(a) }
 }
+
+// ── Escuadra ──
+export type AngulosEscuadra = '45' | '30-60'
+
+/**
+ * Catetos de la escuadra. El ángulo recto queda abajo a la izquierda de la caja: (0, h).
+ * 45°: 12 cm y 12 cm. 30°-60°: 8 cm de alto y 8·√3 ≈ 13,86 cm de base (30° abajo a la derecha, 60° arriba).
+ */
+export function medidasEscuadra(angulos: AngulosEscuadra): { w: number; h: number } {
+  if (angulos === '45') return { w: 12 * PX_POR_CM, h: 12 * PX_POR_CM }
+  return { w: 8 * Math.sqrt(3) * PX_POR_CM, h: 8 * PX_POR_CM }
+}

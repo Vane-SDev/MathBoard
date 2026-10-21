@@ -18,6 +18,7 @@ import { IntegralDoble3DShapeUtil } from '@/components/IntegralDoble3DShape'
 import { CambioVariables3DShapeUtil } from '@/components/CambioVariables3DShape'
 import { ReglaShapeUtil } from '@/components/ReglaShape'
 import { TransportadorShapeUtil } from '@/components/TransportadorShape'
+import { EscuadraShapeUtil } from '@/components/EscuadraShape'
 import { CompasTool, GuiaCompas } from '@/components/CompasTool'
 import { assetsEnLinea } from '@/lib/assetsEnLinea'
 import { registrarTrazoConRegla } from '@/lib/trazos'
@@ -42,6 +43,7 @@ const misBloquesMatematicos = [
   CambioVariables3DShapeUtil,
   ReglaShapeUtil,
   TransportadorShapeUtil,
+  EscuadraShapeUtil,
 ]
 
 // useSync necesita todos los utils (los de tldraw + los nuestros) para armar el schema de la sala.
@@ -88,7 +90,7 @@ export function Pizarra({ sala }: { sala: string }) {
           onMount={(instanciaEditor) => {
             // Tema claro por defecto (hoja de cuaderno). Cada usuario puede cambiarlo desde el menú de tldraw.
             instanciaEditor.user.updateUserPreferences({ colorScheme: 'light' })
-            // Trazos a mano sobre el canto de una regla quedan rectos
+            // Trazos a mano sobre el canto de una regla o escuadra quedan rectos
             return registrarTrazoConRegla(instanciaEditor)
           }}
         />
