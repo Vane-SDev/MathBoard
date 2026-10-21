@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { limiteProps, limiteDefaults } from '@/shapes/schemas'
 import type { PresetLimite as Preset } from '@/shapes/schemas'
 import { acotar, ajustar, samplePaths, deltaFunciona, deltaMaximo, type Fn, type Ventana } from '@/lib/plot'
@@ -73,7 +74,7 @@ const ANCHO = 500
 const fmtY = (y: number): string => (!Number.isFinite(y) || Math.abs(y) > 999 ? 'muy grande' : formatEs(y))
 const fmtL = (L: number): string => (L === Infinity ? '+∞' : formatEs(L))
 
-export class LimiteShapeUtil extends BaseBoxShapeUtil<LimiteShape> {
+export class LimiteShapeUtil extends LabShapeUtil<LimiteShape> {
   static override type = 'limite-funcion' as const
 
   static override props = limiteProps
@@ -82,7 +83,7 @@ export class LimiteShapeUtil extends BaseBoxShapeUtil<LimiteShape> {
     return { ...limiteDefaults }
   }
 
-  override component(shape: LimiteShape) {
+  override contenido(shape: LimiteShape) {
     const { preset, modo, dist, epsilon, delta } = shape.props
     const p = PRESETS[preset]
     const { f, c, Lizq, Lder, fc, relleno, breaks, ventana: v } = p

@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { trigonometriaProps, trigonometriaDefaults } from '@/shapes/schemas'
 import { ajustar, samplePaths, type Fn, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
@@ -25,7 +26,7 @@ const CHECKS: { clave: Bandera; label: string }[] = [
 const ANCHO = 600
 const EPS = 1e-9
 
-export class TrigonometriaShapeUtil extends BaseBoxShapeUtil<TrigonometriaShape> {
+export class TrigonometriaShapeUtil extends LabShapeUtil<TrigonometriaShape> {
   static override type = 'trigonometria-circulo' as const
 
   static override props = trigonometriaProps
@@ -34,7 +35,7 @@ export class TrigonometriaShapeUtil extends BaseBoxShapeUtil<TrigonometriaShape>
     return { ...trigonometriaDefaults }
   }
 
-  override component(shape: TrigonometriaShape) {
+  override contenido(shape: TrigonometriaShape) {
     const { modo, theta, verTan, verCos, amp: A, freq: B, fase: C } = shape.props
     const circulo = modo === 'circulo'
     const v = circulo ? V_CIRCULO : V_ONDA

@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { conicasProps, conicasDefaults } from '@/shapes/schemas'
 import type { TipoConica as Tipo } from '@/shapes/schemas'
 import { acotar, ajustar, pathParametrico, rectaVentana, type Ventana } from '@/lib/plot'
@@ -32,7 +33,7 @@ const desplazado = (variable: string, centro: number): string =>
 const dist = (P: Vec2, Q: Vec2) => Math.hypot(P.x - Q.x, P.y - Q.y)
 const punto = (P: Vec2) => `(${formatEs(P.x)}; ${formatEs(P.y)})`
 
-export class ConicasShapeUtil extends BaseBoxShapeUtil<ConicasShape> {
+export class ConicasShapeUtil extends LabShapeUtil<ConicasShape> {
   static override type = 'conicas' as const
 
   static override props = conicasProps
@@ -41,7 +42,7 @@ export class ConicasShapeUtil extends BaseBoxShapeUtil<ConicasShape> {
     return { ...conicasDefaults }
   }
 
-  override component(shape: ConicasShape) {
+  override contenido(shape: ConicasShape) {
     const { tipo, orientacion, cx, cy, a, b, p, t } = shape.props
     const u = ANCHO / (V.xMax - V.xMin)
     const uid = shape.id.replace(/[^a-zA-Z0-9]/g, '')

@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { matrizProps, matrizDefaults } from '@/shapes/schemas'
 import { apply, det, isSingular, add, toSvg, formatEs, type Mat2 } from '@/lib/linear2d'
 
@@ -28,7 +29,7 @@ const SLIDERS: { clave: Coef; color: string }[] = [
   { clave: 'd', color: 'text-indigo-300 accent-indigo-500' },
 ]
 
-export class MatrizShapeUtil extends BaseBoxShapeUtil<MatrizShape> {
+export class MatrizShapeUtil extends LabShapeUtil<MatrizShape> {
   static override type = 'matriz-2x2' as const
 
   static override props = matrizProps
@@ -37,7 +38,7 @@ export class MatrizShapeUtil extends BaseBoxShapeUtil<MatrizShape> {
     return { ...matrizDefaults }
   }
 
-  override component(shape: MatrizShape) {
+  override contenido(shape: MatrizShape) {
     const { a, b, c, d, showGrid, showDet } = shape.props
     const m: Mat2 = { a, b, c, d }
     const D = det(m)

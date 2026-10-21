@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { integralSimpleProps, integralSimpleDefaults } from '@/shapes/schemas'
 import type { PresetIntegralSimple as Preset } from '@/shapes/schemas'
 import { samplePaths, riemann, type Metodo, type Fn, type Ventana, ajustar, acotar } from '@/lib/plot'
@@ -63,7 +64,7 @@ const CS = [-2, -1, 0, 1, 2]
 const ANCHO = 500
 const MUESTRAS = 200
 
-export class IntegralSimpleShapeUtil extends BaseBoxShapeUtil<IntegralSimpleShape> {
+export class IntegralSimpleShapeUtil extends LabShapeUtil<IntegralSimpleShape> {
   static override type = 'integral-simple' as const
 
   static override props = integralSimpleProps
@@ -72,7 +73,7 @@ export class IntegralSimpleShapeUtil extends BaseBoxShapeUtil<IntegralSimpleShap
     return { ...integralSimpleDefaults }
   }
 
-  override component(shape: IntegralSimpleShape) {
+  override contenido(shape: IntegralSimpleShape) {
     const { preset, modo, metodo, a, b, n, c, x0 } = shape.props
     const p = PRESETS[preset]
     const { f, F, ventana: v } = p

@@ -1,13 +1,14 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { binomioProps, binomioDefaults } from '@/shapes/schemas'
 
 // 2. EL CONTRATO DE TYPESCRIPT: Estructura de datos del bloque
 export type BinomioShape = TLShape<'binomio-cuadrado'>
 
 // 3. LA CLASE CONTROLADORA DEL MICRO-LABORATORIO
-export class BinomioShapeUtil extends BaseBoxShapeUtil<BinomioShape> {
+export class BinomioShapeUtil extends LabShapeUtil<BinomioShape> {
   static override type = 'binomio-cuadrado' as const
 
   // Validador de esquema de Tldraw para la base de datos local (persistenceKey)
@@ -19,7 +20,7 @@ export class BinomioShapeUtil extends BaseBoxShapeUtil<BinomioShape> {
   }
 
   // 4. COMPONENTE VISUAL (React + SVG Geométrico Reactivo)
-  override component(shape: BinomioShape) {
+  override contenido(shape: BinomioShape) {
     const { a, b } = shape.props
     const total = a + b
 

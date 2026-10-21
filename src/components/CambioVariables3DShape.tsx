@@ -1,7 +1,8 @@
 'use client'
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { cambioVariables3DProps, cambioVariables3DDefaults } from '@/shapes/schemas'
 import { acotar, ajustar } from '@/lib/plot'
 import { formatEs } from '@/lib/linear2d'
@@ -563,7 +564,7 @@ function CambioVariables({
   )
 }
 
-export class CambioVariables3DShapeUtil extends BaseBoxShapeUtil<CambioVariables3DShape> {
+export class CambioVariables3DShapeUtil extends LabShapeUtil<CambioVariables3DShape> {
   static override type = 'cambio-variables-3d' as const
 
   static override props = cambioVariables3DProps
@@ -572,7 +573,7 @@ export class CambioVariables3DShapeUtil extends BaseBoxShapeUtil<CambioVariables
     return { ...cambioVariables3DDefaults }
   }
 
-  override component(shape: CambioVariables3DShape) {
+  override contenido(shape: CambioVariables3DShape) {
     const actualizar = (props: Partial<Props>) => {
       this.editor.updateShape<CambioVariables3DShape>({ id: shape.id, type: 'cambio-variables-3d', props })
     }

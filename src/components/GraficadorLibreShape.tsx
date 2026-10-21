@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { graficadorLibreProps, graficadorLibreDefaults } from '@/shapes/schemas'
 import { pasoLindo, raicesNumericas, samplePaths, type Ventana } from '@/lib/plot'
 import { toSvg, formatEs } from '@/lib/linear2d'
@@ -250,7 +251,7 @@ function Graficador({ id, props, actualizar }: { id: string; props: Props; actua
   )
 }
 
-export class GraficadorLibreShapeUtil extends BaseBoxShapeUtil<GraficadorLibreShape> {
+export class GraficadorLibreShapeUtil extends LabShapeUtil<GraficadorLibreShape> {
   static override type = 'graficador-libre' as const
 
   static override props = graficadorLibreProps
@@ -259,7 +260,7 @@ export class GraficadorLibreShapeUtil extends BaseBoxShapeUtil<GraficadorLibreSh
     return { ...graficadorLibreDefaults }
   }
 
-  override component(shape: GraficadorLibreShape) {
+  override contenido(shape: GraficadorLibreShape) {
     const actualizar = (props: Partial<Props>) => {
       this.editor.updateShape<GraficadorLibreShape>({ id: shape.id, type: 'graficador-libre', props })
     }

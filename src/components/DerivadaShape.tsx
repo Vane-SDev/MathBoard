@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { derivadaProps, derivadaDefaults } from '@/shapes/schemas'
 import type { PresetDerivada as Preset } from '@/shapes/schemas'
 import { ajustar, samplePaths, rectaVentana, type Fn, type Ventana } from '@/lib/plot'
@@ -87,7 +88,7 @@ const CHECKS: { clave: Bandera; label: string }[] = [
 ]
 const ANCHO = 500
 
-export class DerivadaShapeUtil extends BaseBoxShapeUtil<DerivadaShape> {
+export class DerivadaShapeUtil extends LabShapeUtil<DerivadaShape> {
   static override type = 'derivada-estudio' as const
 
   static override props = derivadaProps
@@ -96,7 +97,7 @@ export class DerivadaShapeUtil extends BaseBoxShapeUtil<DerivadaShape> {
     return { ...derivadaDefaults }
   }
 
-  override component(shape: DerivadaShape) {
+  override contenido(shape: DerivadaShape) {
     const { preset, modo, x0, dx, verDerivada, verSegunda, verNotables } = shape.props
     const p = PRESETS[preset]
     const { f, d1, d2, ventana: v } = p

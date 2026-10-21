@@ -20,6 +20,7 @@ import { ReglaShapeUtil } from '@/components/ReglaShape'
 import { TransportadorShapeUtil } from '@/components/TransportadorShape'
 import { CompasTool, GuiaCompas } from '@/components/CompasTool'
 import { assetsEnLinea } from '@/lib/assetsEnLinea'
+import { registrarTrazoConRegla } from '@/lib/trazos'
 import { urlDeSincronizacion } from '@/lib/sala'
 import { BarraSuperior } from '@/components/BarraSuperior'
 import { ContextoClase } from '@/components/ContextoClase'
@@ -87,6 +88,8 @@ export function Pizarra({ sala }: { sala: string }) {
           onMount={(instanciaEditor) => {
             // Tema claro por defecto (hoja de cuaderno). Cada usuario puede cambiarlo desde el menú de tldraw.
             instanciaEditor.user.updateUserPreferences({ colorScheme: 'light' })
+            // Trazos a mano sobre el canto de una regla quedan rectos
+            return registrarTrazoConRegla(instanciaEditor)
           }}
         />
       </ContextoClase.Provider>

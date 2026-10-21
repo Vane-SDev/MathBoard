@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { superficieDerivadas3DProps, superficieDerivadas3DDefaults, superficieDerivadas3DMigrations } from '@/shapes/schemas'
 import type { PresetSuperficie as Preset } from '@/shapes/schemas'
 import { acotar, ajustar } from '@/lib/plot'
@@ -512,7 +513,7 @@ function Superficie({
   )
 }
 
-export class SuperficieDerivadas3DShapeUtil extends BaseBoxShapeUtil<SuperficieDerivadas3DShape> {
+export class SuperficieDerivadas3DShapeUtil extends LabShapeUtil<SuperficieDerivadas3DShape> {
   static override type = 'superficie-3d' as const
 
   static override props = superficieDerivadas3DProps
@@ -523,7 +524,7 @@ export class SuperficieDerivadas3DShapeUtil extends BaseBoxShapeUtil<SuperficieD
     return { ...superficieDerivadas3DDefaults }
   }
 
-  override component(shape: SuperficieDerivadas3DShape) {
+  override contenido(shape: SuperficieDerivadas3DShape) {
     const actualizar = (props: Partial<Props>) => {
       this.editor.updateShape<SuperficieDerivadas3DShape>({ id: shape.id, type: 'superficie-3d', props })
     }

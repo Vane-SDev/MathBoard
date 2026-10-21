@@ -1,6 +1,7 @@
 'use client'
 
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { polaresProps, polaresDefaults } from '@/shapes/schemas'
 import type { PresetPolares as Preset } from '@/shapes/schemas'
 import { polar, samplePolarPaths, riemannPolar, sectorPath, type FnPolar, type TramoPolar, ajustar, acotar } from '@/lib/plot'
@@ -68,7 +69,7 @@ const ETIQUETAS: { t: number; txt: string }[] = [
   { t: (3 * PI) / 2, txt: '3π/2' },
 ]
 
-export class PolaresShapeUtil extends BaseBoxShapeUtil<PolaresShape> {
+export class PolaresShapeUtil extends LabShapeUtil<PolaresShape> {
   static override type = 'coordenadas-polares' as const
 
   static override props = polaresProps
@@ -77,7 +78,7 @@ export class PolaresShapeUtil extends BaseBoxShapeUtil<PolaresShape> {
     return { ...polaresDefaults }
   }
 
-  override component(shape: PolaresShape) {
+  override contenido(shape: PolaresShape) {
     const { preset, modo, theta, alfa, beta, n } = shape.props
     const p = PRESETS[preset]
     const { r, G } = p

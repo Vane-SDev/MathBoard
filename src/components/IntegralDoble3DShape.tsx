@@ -1,7 +1,8 @@
 'use client'
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import { BaseBoxShapeUtil, HTMLContainer, type TLShape } from 'tldraw'
+import { HTMLContainer, type TLShape } from 'tldraw'
+import { LabShapeUtil } from '@/components/LabShapeUtil'
 import { integralDoble3DProps, integralDoble3DDefaults, integralDoble3DMigrations } from '@/shapes/schemas'
 import type { PresetIntegralDoble as Preset, RegionIntegralDoble as Region } from '@/shapes/schemas'
 import { acotar, ajustar } from '@/lib/plot'
@@ -569,7 +570,7 @@ function IntegralDoble({
   )
 }
 
-export class IntegralDoble3DShapeUtil extends BaseBoxShapeUtil<IntegralDoble3DShape> {
+export class IntegralDoble3DShapeUtil extends LabShapeUtil<IntegralDoble3DShape> {
   static override type = 'integral-doble-3d' as const
 
   static override props = integralDoble3DProps
@@ -580,7 +581,7 @@ export class IntegralDoble3DShapeUtil extends BaseBoxShapeUtil<IntegralDoble3DSh
     return { ...integralDoble3DDefaults }
   }
 
-  override component(shape: IntegralDoble3DShape) {
+  override contenido(shape: IntegralDoble3DShape) {
     const actualizar = (props: Partial<Props>) => {
       this.editor.updateShape<IntegralDoble3DShape>({ id: shape.id, type: 'integral-doble-3d', props })
     }
