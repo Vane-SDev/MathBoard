@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } fro
 import { AssetRecordType, createShapeId, useEditor, type Editor, type TLImageShape } from 'tldraw'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { abrirPdf, dibujarVista, esCancelacion, exportarPagina, type PaginaExportada } from '@/lib/pdf'
+import { PX_POR_CM } from '@/lib/geometria'
 
 const frenar = (e: { stopPropagation: () => void }) => e.stopPropagation()
 
@@ -12,35 +13,53 @@ const mensaje = (error: unknown): string => (error instanceof Error ? error.mess
 const boton =
   'text-xs whitespace-nowrap font-medium px-3 py-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default'
 
-// La hoja entra como asset de imagen con su data URL (la sala la guarda como cualquier otro registro)
-// y un shape 'image' centrado en lo que se ve ahora. Un Ctrl+Z la saca entera.
-function insertarPagina(editor: Editor, hoja: PaginaExportada, nombre: string) {
-  const assetId = AssetRecordType.createId()
-  const id = createShapeId()
+// Más páginas juntas = más peso para todos los que entran a la sala (~150 KB por hoja densa).
+const MAX_POR_VEZ = 20
+const COLUMNAS = 5
+const SEPARACION = PX_POR_CM // 1 cm entre hojas
+
+type HojaConNombre = { hoja: PaginaExportada; nombre: string }
+
+// Cada hoja entra como asset de imagen con su data URL (la sala lo guarda como cualquier otro registro)
+// y un shape 'image'. Varias hojas se acomodan en grilla de hasta 5 columnas, centrada en lo que se ve ahora.
+// Todo en un solo paso de historial: un Ctrl+Z las saca todas.
+function insertarPaginas(editor: Editor, hojas: HojaConNombre[]) {
+  const columnas = Math.min(hojas.length, COLUMNAS)
+  const filas = Math.ceil(hojas.length / columnas)
+  const anchoCelda = Math.max(...hojas.map((h) => h.hoja.w))
+  const altoCelda = Math.max(...hojas.map((h) => h.hoja.h))
+  const anchoTotal = columnas * anchoCelda + (columnas - 1) * SEPARACION
+  const altoTotal = filas * altoCelda + (filas - 1) * SEPARACION
   // El centro de la pantalla en coordenadas de la PÁGINA (el lienzo), no en píxeles de la ventana.
-  const { x, y } = editor.getViewportPageBounds().center
-  editor.markHistoryStoppingPoint('pegar-pagina-pdf')
+  const centro = editor.getViewportPageBounds().center
+  const x0 = centro.x - anchoTotal / 2
+  const y0 = centro.y - altoTotal / 2
+  const ids = hojas.map(() => createShapeId())
+  editor.markHistoryStoppingPoint('pegar-paginas-pdf')
   editor.run(() => {
-    editor.createAssets([
-      {
-        id: assetId,
-        typeName: 'asset',
+    hojas.forEach(({ hoja, nombre }, i) => {
+      const assetId = AssetRecordType.createId()
+      editor.createAssets([
+        {
+          id: assetId,
+          typeName: 'asset',
+          type: 'image',
+          props: { name: nombre, src: hoja.src, w: hoja.pxW, h: hoja.pxH, mimeType: 'image/webp', isAnimated: false, fileSize: hoja.bytes },
+          meta: {},
+        },
+      ])
+      editor.createShape<TLImageShape>({
+        id: ids[i],
         type: 'image',
-        props: { name: nombre, src: hoja.src, w: hoja.pxW, h: hoja.pxH, mimeType: 'image/webp', isAnimated: false, fileSize: hoja.bytes },
-        meta: {},
-      },
-    ])
-    editor.createShape<TLImageShape>({
-      id,
-      type: 'image',
-      x: x - hoja.w / 2,
-      y: y - hoja.h / 2,
-      props: { assetId, w: hoja.w, h: hoja.h },
+        x: x0 + (i % columnas) * (anchoCelda + SEPARACION),
+        y: y0 + Math.floor(i / columnas) * (altoCelda + SEPARACION),
+        props: { assetId, w: hoja.w, h: hoja.h },
+      })
     })
   })
-  editor.select(id)
-  const limites = editor.getShapePageBounds(id)
-  // Que se vea la hoja entera sin pasar del 100 %
+  editor.select(...ids)
+  const limites = editor.getSelectionPageBounds()
+  // Que se vean todas las hojas sin pasar del 100 %
   if (limites) editor.zoomToBounds(limites, { targetZoom: 1, inset: 32, animation: { duration: 300 } })
 }
 
@@ -51,7 +70,10 @@ export function VisorPdfModal({ abierto, alCerrar }: { abierto: boolean; alCerra
   const [nombre, setNombre] = useState('')
   const [numero, setNumero] = useState(1)
   const [salto, setSalto] = useState('1')
+  const [desde, setDesde] = useState('1')
+  const [hasta, setHasta] = useState('1')
   const [ocupado, setOcupado] = useState<'abriendo' | 'pegando' | null>(null)
+  const [progreso, setProgreso] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pegadas, setPegadas] = useState<number[]>([])
   const input = useRef<HTMLInputElement>(null)
@@ -113,6 +135,8 @@ export function VisorPdfModal({ abierto, alCerrar }: { abierto: boolean; alCerra
       setNombre(archivo.name.replace(/\.pdf$/i, ''))
       setNumero(1)
       setSalto('1')
+      setDesde('1')
+      setHasta(String(Math.min(nuevo.numPages, 5)))
       setPegadas([])
     } catch (err) {
       setError(mensaje(err))
@@ -121,19 +145,38 @@ export function VisorPdfModal({ abierto, alCerrar }: { abierto: boolean; alCerra
     }
   }
 
-  const pegar = async () => {
+  // Rango de páginas como lo escribió la profe, ordenado y dentro del PDF
+  const rango = (): [number, number] => {
+    const a = Math.min(Math.max(1, Math.round(Number(desde) || 1)), total)
+    const b = Math.min(Math.max(1, Math.round(Number(hasta) || a)), total)
+    return a <= b ? [a, b] : [b, a]
+  }
+  const [primera, ultima] = doc ? rango() : [1, 1]
+  const cantidad = ultima - primera + 1
+
+  // Exporta una por una (así no se juntan 20 canvas en memoria) y las pega todas juntas al final.
+  const pegar = async (inicio: number, fin: number) => {
     if (!doc) return
+    if (fin - inicio + 1 > MAX_POR_VEZ) {
+      setError(`Máximo ${MAX_POR_VEZ} páginas por vez: cada hoja la descargan todos los que entran a la sala`)
+      return
+    }
     setOcupado('pegando')
     setError(null)
     try {
-      const hoja = await exportarPagina(await doc.getPage(numero))
-      insertarPagina(editor, hoja, `${nombre} · pág. ${numero}`)
-      setPegadas((p) => (p.includes(numero) ? p : [...p, numero]))
+      const hojas: HojaConNombre[] = []
+      for (let n = inicio; n <= fin; n++) {
+        setProgreso(fin > inicio ? `Preparando ${n - inicio + 1} de ${fin - inicio + 1}…` : 'Pegando…')
+        hojas.push({ hoja: await exportarPagina(await doc.getPage(n)), nombre: `${nombre} · pág. ${n}` })
+      }
+      insertarPaginas(editor, hojas)
+      setPegadas((p) => [...new Set([...p, ...hojas.map((_, i) => inicio + i)])])
       alCerrar()
     } catch (err) {
       setError(mensaje(err))
     } finally {
       setOcupado(null)
+      setProgreso('')
     }
   }
 
@@ -240,13 +283,50 @@ export function VisorPdfModal({ abierto, alCerrar }: { abierto: boolean; alCerra
           >
             Siguiente ▶
           </button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 px-3 pb-3">
           <button
-            onClick={pegar}
+            onClick={() => pegar(numero, numero)}
             disabled={!doc || ocupado !== null}
-            className={`${boton} sm:ml-auto bg-purple-600 border-purple-500 text-white hover:bg-purple-500`}
+            className={`${boton} bg-purple-600 border-purple-500 text-white hover:bg-purple-500`}
           >
-            {ocupado === 'pegando' ? 'Pegando…' : '📌 Pegar esta página en la pizarra'}
+            {ocupado === 'pegando' ? progreso : '📌 Pegar esta página'}
           </button>
+          <div className="flex items-center gap-1.5 text-xs text-purple-100 whitespace-nowrap border border-purple-500/40 rounded-lg pl-2.5 pr-1 py-1">
+            Varias: de
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={total || 1}
+              value={desde}
+              disabled={!doc}
+              onChange={(e) => setDesde(e.target.value)}
+              className="w-12 bg-zinc-800 border border-purple-500/40 rounded-md px-1 py-0.5 text-white text-center"
+              aria-label="Desde la página"
+            />
+            a
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={total || 1}
+              value={hasta}
+              disabled={!doc}
+              onChange={(e) => setHasta(e.target.value)}
+              className="w-12 bg-zinc-800 border border-purple-500/40 rounded-md px-1 py-0.5 text-white text-center"
+              aria-label="Hasta la página"
+            />
+            <button
+              onClick={() => pegar(primera, ultima)}
+              disabled={!doc || ocupado !== null || cantidad > MAX_POR_VEZ}
+              className={`${boton} bg-fuchsia-600 border-fuchsia-500 text-white hover:bg-fuchsia-500`}
+              title={cantidad > MAX_POR_VEZ ? `Máximo ${MAX_POR_VEZ} páginas por vez` : undefined}
+            >
+              📌 Pegar {cantidad} {cantidad === 1 ? 'página' : 'páginas'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
