@@ -5,26 +5,12 @@ import { parseTldrawJsonFile, serializeTldrawJsonBlob, useEditor, useValue } fro
 import { irASala, linkDeSala, recordarSala } from '@/lib/sala'
 import { useClase } from '@/components/ContextoClase'
 import { GestorSalas } from '@/components/GestorSalas'
+import { detectarProfe } from '@/lib/rol'
 
 // Colores de cursor en la gama de la marca + algunos contrastantes para distinguir alumnos.
 const COLORES = ['#a855f7', '#d946ef', '#6366f1', '#f472b6', '#22d3ee', '#4ade80', '#facc15', '#fb923c']
 
 const frenar = (e: { stopPropagation: () => void }) => e.stopPropagation()
-
-const CLAVE_PROFE = 'mathboard-es-profe'
-
-// ?rol=profe deja este navegador marcado como profe; ?rol=alumno lo desmarca (para probar como alumna).
-// Es solo comodidad de interfaz: no protege nada en el servidor.
-function detectarProfe(): boolean {
-  const rol = new URLSearchParams(window.location.search).get('rol')
-  try {
-    if (rol === 'profe') localStorage.setItem(CLAVE_PROFE, 'true')
-    if (rol === 'alumno') localStorage.removeItem(CLAVE_PROFE)
-    return rol === 'profe' || (rol !== 'alumno' && localStorage.getItem(CLAVE_PROFE) === 'true')
-  } catch {
-    return rol === 'profe'
-  }
-}
 
 export function BarraClase({ abierto, alternar }: { abierto: boolean; alternar: () => void }) {
   const editor = useEditor()

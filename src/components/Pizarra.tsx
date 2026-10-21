@@ -1,6 +1,6 @@
 'use client'
 
-import { Tldraw, defaultShapeUtils, getUserPreferences, type TLComponents } from 'tldraw'
+import { Tldraw, defaultShapeUtils, getUserPreferences, type TLComponents, type TldrawOptions } from 'tldraw'
 import { useSync } from '@tldraw/sync'
 import 'tldraw/tldraw.css'
 import { useMemo, useState } from 'react'
@@ -61,6 +61,8 @@ const HERRAMIENTAS = [CompasTool]
 
 // Fondo de cuaderno, barra de marca en el TopPanel y guía del compás. AFUERA del componente por la misma razón.
 const COMPONENTES: TLComponents = { Background: FondoCuaderno, TopPanel: BarraSuperior, OnTheCanvas: GuiaCompas }
+// Rueda del mouse = zoom, como en Miro (Ctrl + rueda pasa a desplazar). AFUERA del componente por la misma razón.
+const OPCIONES: Partial<TldrawOptions> = { camera: { wheelBehavior: 'zoom' } }
 
 export function Pizarra({ sala }: { sala: string }) {
   // La sala vive en el Durable Object: es la única fuente de verdad (no hay persistenceKey).
@@ -97,6 +99,7 @@ export function Pizarra({ sala }: { sala: string }) {
           tools={HERRAMIENTAS}
           shapeUtils={misBloquesMatematicos}
           components={COMPONENTES}
+          options={OPCIONES}
           onMount={(instanciaEditor) => {
             // Tema claro por defecto (hoja de cuaderno). Cada usuario puede cambiarlo desde el menú de tldraw.
             instanciaEditor.user.updateUserPreferences({ colorScheme: 'light' })

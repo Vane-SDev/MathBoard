@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CenteredTopPanelContainer, useEditor, useValue } from 'tldraw'
 import { BarraClase } from '@/components/BarraClase'
+import { VisorPdfModal } from '@/components/VisorPdfModal'
+import { detectarProfe } from '@/lib/rol'
 import type { LAB_SCHEMAS } from '@/shapes/schemas'
 
 type Categoria = 'Geometría' | 'Álgebra y Geometría' | 'Cálculo I' | 'Cálculo II' | 'Graficador'
@@ -43,6 +46,9 @@ export function BarraSuperior() {
   const editor = useEditor()
   const [abierto, setAbierto] = useState<Abierto>(null)
   const raiz = useRef<HTMLDivElement>(null)
+  // Solo la profe importa PDFs: cada página pesa ~150 KB y la reciben todos los que entran a la sala.
+  const [esProfe] = useState(detectarProfe)
+  const [conPdf, setConPdf] = useState(false)
   const conCompas = useValue('con-compas', () => editor.getCurrentToolId() === 'compas', [editor])
 
   useEffect(() => {
@@ -73,7 +79,7 @@ export function BarraSuperior() {
   }
 
   return (
-    <CenteredTopPanelContainer maxWidth={680}>
+    <CenteredTopPanelContainer maxWidth={800}>
       <div
         ref={raiz}
         style={{ pointerEvents: 'all' }}
@@ -98,6 +104,18 @@ export function BarraSuperior() {
           🧪 <span className="hidden sm:inline">Laboratorios</span> ▾
         </button>
 
+        {esProfe && (
+          <button
+            onClick={() => {
+              setAbierto(null)
+              setConPdf(true)
+            }}
+            className={`${chip} bg-zinc-900 border-purple-500/40 text-purple-200 hover:bg-zinc-800`}
+            title="Mostrar un PDF y pegar páginas en la pizarra"
+          >
+            📄 <span className="hidden sm:inline">PDF</span>
+          </button>
+        )}
         <BarraClase abierto={abierto === 'clase'} alternar={() => setAbierto(abierto === 'clase' ? null : 'clase')} />
 
         {abierto === 'labs' && (
@@ -133,6 +151,8 @@ export function BarraSuperior() {
           </div>
         )}
       </div>
+      {/* En el body: dentro de la barra (backdrop-blur) un fixed quedaría atrapado en la barra */}
+      {esProfe && createPortal(<VisorPdfModal abierto={conPdf} alCerrar={() => setConPdf(false)} />, document.body)}
     </CenteredTopPanelContainer>
   )
 }

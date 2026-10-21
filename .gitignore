@@ -45,3 +45,6 @@ AGENTS.md
 # wrangler
 .wrangler/
 .dev.vars
+
+# pdf.js (lo genera scripts/copiar-pdfjs.mjs)
+/public/pdfjs/

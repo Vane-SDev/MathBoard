@@ -9,7 +9,10 @@
     "lint": "eslint",
     "sala:dev": "wrangler dev",
     "sala:tipos": "wrangler types worker/worker-configuration.d.ts",
-    "deploy": "next build && wrangler deploy"
+    "pdfjs:copiar": "node scripts/copiar-pdfjs.mjs",
+    "postinstall": "npm run pdfjs:copiar",
+    "prebuild": "npm run pdfjs:copiar",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@tldraw/sync": "5.5.2",
@@ -17,6 +20,7 @@
     "@tldraw/tlschema": "5.5.2",
     "@tldraw/validate": "5.5.2",
     "next": "16.4.1",
+    "pdfjs-dist": "6.4.299",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tldraw": "5.5.2"
