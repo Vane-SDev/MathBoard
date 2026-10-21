@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useCallback, useRef, useState, type ChangeEvent } from 'react'
 import { parseTldrawJsonFile, serializeTldrawJsonBlob, useEditor, useValue } from 'tldraw'
-import { irASala, linkDeSala, nombreDeSalaNueva, recordarSala } from '@/lib/sala'
+import { irASala, linkDeSala, recordarSala } from '@/lib/sala'
 import { useClase } from '@/components/ContextoClase'
+import { GestorSalas } from '@/components/GestorSalas'
 
 // Colores de cursor en la gama de la marca + algunos contrastantes para distinguir alumnos.
 const COLORES = ['#a855f7', '#d946ef', '#6366f1', '#f472b6', '#22d3ee', '#4ade80', '#facc15', '#fb923c']
@@ -32,6 +33,7 @@ export function BarraClase({ abierto, alternar }: { abierto: boolean; alternar: 
   const [recientes] = useState(() => recordarSala(sala))
   const [esProfe] = useState(detectarProfe)
   const [copiado, setCopiado] = useState(false)
+  const [conGestor, setConGestor] = useState(false)
   const archivo = useRef<HTMLInputElement>(null)
 
   // Nombre y color los guarda tldraw en este navegador; viajan en la presencia (cursor) a los demás.
@@ -40,10 +42,10 @@ export function BarraClase({ abierto, alternar }: { abierto: boolean; alternar: 
   const gente = useValue('gente', () => editor.getCollaborators(), [editor])
   const siguiendo = useValue('siguiendo', () => editor.getInstanceState().followingUserId, [editor])
 
-  const nuevaSala = () => {
-    const alumno = window.prompt('Nombre del alumno o grupo para la sala nueva:')
-    if (alumno && alumno.trim()) irASala(nombreDeSalaNueva(alumno))
-  }
+  const cerrarGestor = useCallback(() => setConGestor(false), [])
+
+  // Las salas nuevas se crean en el gestor: el Worker solo acepta salas que creó la profe con su clave.
+  const nuevaSala = () => setConGestor(true)
 
   const copiarLink = async () => {
     await navigator.clipboard.writeText(linkDeSala(sala))
@@ -84,6 +86,13 @@ export function BarraClase({ abierto, alternar }: { abierto: boolean; alternar: 
       <button onClick={alternar} className={chipNormal} title="Sala, tu nombre y quién está conectado">
         👥 <span className="hidden sm:inline">Clase</span> ▾ {conectado ? '🟢' : '🔴'} {gente.length + 1}
       </button>
+
+      {esProfe && (
+        <button onClick={() => setConGestor(true)} className={chipNormal} title="Mis salas: abrir, clausurar o reabrir">
+          🗂️ <span className="hidden sm:inline">Salas</span>
+        </button>
+      )}
+      {conGestor && <GestorSalas salaActual={sala} recientes={recientes} cerrar={cerrarGestor} />}
 
       <button
         onClick={copiarLink}

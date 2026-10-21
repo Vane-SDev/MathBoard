@@ -10,8 +10,14 @@
     "run_worker_first": ["/api/*"]
   },
   "durable_objects": {
-    "bindings": [{ "name": "SALA", "class_name": "SalaDurableObject" }]
+    "bindings": [
+      { "name": "SALA", "class_name": "SalaDurableObject" },
+      { "name": "INDICE", "class_name": "IndiceSalas" }
+    ]
   },
   // Plan gratis: Durable Objects solo con SQLite.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SalaDurableObject"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SalaDurableObject"] },
+    { "tag": "v2", "new_sqlite_classes": ["IndiceSalas"] }
+  ]
 }

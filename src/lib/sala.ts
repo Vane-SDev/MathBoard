@@ -22,9 +22,10 @@ export function linkDeSala(sala: string): string {
 
 // En producción el Worker sirve la web y el WebSocket en el mismo dominio.
 // En desarrollo con `next dev`, NEXT_PUBLIC_SYNC_URL apunta a `wrangler dev` (ws://localhost:8787).
-export function urlDeSincronizacion(sala: string): string {
+// El nombre viaja para el registro de visitas que ve la profe.
+export function urlDeSincronizacion(sala: string, nombre: string): string {
   const base = process.env.NEXT_PUBLIC_SYNC_URL ?? window.location.origin.replace(/^http/, 'ws')
-  return `${base}/api/connect/${sala}`
+  return `${base}/api/connect/${sala}?nombre=${encodeURIComponent(nombre)}`
 }
 
 // Últimas salas visitadas (solo en este navegador), la más reciente primero.

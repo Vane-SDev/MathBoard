@@ -1,9 +1,9 @@
 'use client'
 
-import { Tldraw, defaultShapeUtils, type TLComponents } from 'tldraw'
+import { Tldraw, defaultShapeUtils, getUserPreferences, type TLComponents } from 'tldraw'
 import { useSync } from '@tldraw/sync'
 import 'tldraw/tldraw.css'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { BinomioShapeUtil } from '@/components/BinomioShape'
 import { MatrizShapeUtil } from '@/components/MatrizShape'
 import { LimiteShapeUtil } from '@/components/LimiteShape'
@@ -27,6 +27,8 @@ import { urlDeSincronizacion } from '@/lib/sala'
 import { BarraSuperior } from '@/components/BarraSuperior'
 import { ContextoClase } from '@/components/ContextoClase'
 import { FondoCuaderno } from '@/components/FondoCuaderno'
+import { PantallaClausurada } from '@/components/PantallaClausurada'
+import { esSalaCerrada } from '@/lib/gestorSalas'
 
 // 1. Declaramos el array AFUERA del componente para evitar re-renders
 const misBloquesMatematicos = [
@@ -62,8 +64,10 @@ const COMPONENTES: TLComponents = { Background: FondoCuaderno, TopPanel: BarraSu
 
 export function Pizarra({ sala }: { sala: string }) {
   // La sala vive en el Durable Object: es la única fuente de verdad (no hay persistenceKey).
+  // Una sola vez: si cambiara (p. ej. al editar el nombre) useSync armaría otra conexión.
+  const [uri] = useState(() => urlDeSincronizacion(sala, getUserPreferences().name ?? ''))
   const store = useSync({
-    uri: urlDeSincronizacion(sala),
+    uri,
     assets: assetsEnLinea,
     shapeUtils: utilsDeLaSala,
   })
@@ -73,6 +77,10 @@ export function Pizarra({ sala }: { sala: string }) {
     () => ({ sala, conectado: store.status === 'synced-remote' && store.connectionStatus === 'online' }),
     [sala, store],
   )
+
+  // Sala que la profe no creó o que clausuró: el servidor cerró con nuestro motivo y useSync ya no reintenta.
+  // Un corte de red no llega acá.
+  if (store.status === 'error' && esSalaCerrada(store.error)) return <PantallaClausurada />
 
   return (
     <main className="fixed inset-0 bg-white">

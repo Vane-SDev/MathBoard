@@ -44,3 +44,4 @@ AGENTS.md
 
 # wrangler
 .wrangler/
+.dev.vars
