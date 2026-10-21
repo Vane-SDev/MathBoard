@@ -75,7 +75,7 @@ export function Pizarra({ sala }: { sala: string }) {
   )
 
   return (
-    <main className="fixed inset-0 w-screen h-screen bg-white">
+    <main className="fixed inset-0 bg-white">
       {store.status !== 'synced-remote' && (
         <div className="absolute inset-0 z-40 flex items-center justify-center text-zinc-500 text-sm">
           {store.status === 'loading' ? 'Conectando con la sala…' : 'No se pudo conectar con la sala. Revisá tu conexión y recargá.'}
