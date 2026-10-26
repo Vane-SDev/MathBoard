@@ -51,3 +51,27 @@ export function medidasEscuadra(angulos: AngulosEscuadra): { w: number; h: numbe
   if (angulos === '45') return { w: 12 * PX_POR_CM, h: 12 * PX_POR_CM }
   return { w: 8 * Math.sqrt(3) * PX_POR_CM, h: 8 * PX_POR_CM }
 }
+
+// ── Compás ──
+type Punto = { x: number; y: number }
+
+/**
+ * Piezas del compás dibujado "de frente", en coordenadas locales con la aguja en (0, 0).
+ * û = (cos θ, sen θ) apunta al lápiz; n̂ = (sen θ, −cos θ) es su normal (con y hacia abajo, en θ = 0 apunta para arriba).
+ * Las patas miden L, así que la bisagra H está sobre la mediatriz de la cuerda aguja–lápiz:
+ *   P = r·û,  M = P/2,  d = √(L² − (r/2)²),  H = M + d·n̂.
+ * L = máx(4 cm; 0,6·r): con r chico las patas casi se juntan y con r grande nunca quedan chatas (d ≥ 0,33·r).
+ */
+export function piezasCompas(r: number, angulo: number): { L: number; lapiz: Punto; bisagra: Punto; mango: Punto } {
+  const L = Math.max(4 * PX_POR_CM, 0.6 * r)
+  const u = { x: Math.cos(angulo), y: Math.sin(angulo) }
+  const n = { x: Math.sin(angulo), y: -Math.cos(angulo) }
+  const d = Math.sqrt(L * L - (r / 2) ** 2)
+  const bisagra = { x: (r / 2) * u.x + d * n.x, y: (r / 2) * u.y + d * n.y }
+  return {
+    L,
+    lapiz: { x: r * u.x, y: r * u.y },
+    bisagra,
+    mango: { x: bisagra.x + 0.25 * L * n.x, y: bisagra.y + 0.25 * L * n.y },
+  }
+}

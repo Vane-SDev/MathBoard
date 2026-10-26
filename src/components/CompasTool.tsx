@@ -4,36 +4,27 @@ import {
   DefaultColorStyle,
   StateNode,
   Vec,
-  atom,
   createShapeId,
   useEditor,
   useValue,
   type Editor,
   type TLArrowShape,
   type TLGeoShape,
+  type TLShapeId,
   type TLStateNodeConstructor,
 } from 'tldraw'
-import { formatEs } from '@/lib/linear2d'
-import { PX_POR_MM, cmDesdePx, redondearAMm } from '@/lib/geometria'
+import { PX_POR_MM, redondearAMm } from '@/lib/geometria'
+import type { CompasShape } from '@/components/CompasShape'
 
 type Punto = { x: number; y: number }
+type PropsCompas = CompasShape['props']
 
 /**
- * Lo que se está trazando ahora, en coordenadas de la hoja. Es local: los demás solo ven el trazo terminado.
- * Ángulos en radianes medidos en la hoja (y hacia abajo): `barrido` > 0 gira en sentido horario en pantalla.
+ * El compás es un shape de la sala (CompasShape): todas ven la aguja, las patas y el arco en curso.
+ * La herramienta solo lo mueve. Ángulos en radianes medidos en la hoja (y hacia abajo): `barrido` > 0 gira en
+ * sentido horario en pantalla. x, y del shape = la aguja.
  */
-type Trazo = {
-  fase: 'abriendo' | 'abierto' | 'girando'
-  centro: Punto
-  r: number
-  /** Dirección actual del lápiz */
-  angulo: number
-  /** Dónde empezó el arco y cuánto giró (acumulado: puede pasar de una vuelta) */
-  inicio: number
-  barrido: number
-}
-
-const trazo = atom<Trazo | null>('compas-trazo', null)
+type Trazo = { centro: Punto; r: number; inicio: number; barrido: number }
 
 /** Radio mínimo para abrir el compás: 2 mm */
 const R_MINIMO = 2 * PX_POR_MM
@@ -54,6 +45,47 @@ function diferencia(a: number, b: number) {
   return d
 }
 
+// ── El shape del compás: uno por persona ──
+
+/** Id fijo por persona: si dos usan el compás a la vez, cada una mueve el suyo */
+export const idCompas = (editor: Editor): TLShapeId => createShapeId(`compas-${editor.user.getId()}`)
+
+export function leerCompas(editor: Editor): CompasShape | undefined {
+  return editor.getShape<CompasShape>(idCompas(editor))
+}
+
+/** Movimientos del compás: sin historial (Ctrl+Z solo saca arcos) y aunque esté bloqueado */
+function moverCompas(editor: Editor, cambio: { x?: number; y?: number; props?: Partial<PropsCompas> }) {
+  editor.run(
+    () => {
+      const id = idCompas(editor)
+      const actual = editor.getShape<CompasShape>(id)
+      if (actual) {
+        editor.updateShape<CompasShape>({ id, type: 'compas', ...cambio })
+      } else {
+        editor.createShape<CompasShape>({ id, type: 'compas', isLocked: true, ...cambio })
+      }
+    },
+    { history: 'ignore', ignoreShapeLock: true },
+  )
+}
+
+/** Guardar el compás: desaparece de la sala */
+export function guardarCompas(editor: Editor) {
+  const id = idCompas(editor)
+  if (!editor.getShape(id)) return
+  editor.run(() => editor.deleteShape(id), { history: 'ignore', ignoreShapeLock: true })
+}
+
+/** Después de crear un arco el compás vuelve a quedar encima de todo */
+function compasAlFrente(editor: Editor) {
+  editor.run(() => editor.bringToFront([idCompas(editor)]), { history: 'ignore', ignoreShapeLock: true })
+}
+
+const trazoDe = (c: CompasShape): Trazo => ({ centro: { x: c.x, y: c.y }, r: c.props.r, inicio: c.props.inicio, barrido: c.props.barrido })
+
+// ── Lo que deja el compás en la hoja (shapes nativos) ──
+
 function crearCirculo(editor: Editor, t: Trazo) {
   editor.markHistoryStoppingPoint('compas')
   editor.createShape<TLGeoShape>({
@@ -71,6 +103,7 @@ function crearCirculo(editor: Editor, t: Trazo) {
       color: editor.getStyleForNextShape(DefaultColorStyle),
     },
   })
+  compasAlFrente(editor)
 }
 
 /** Tramo de arco nativo: una flecha curva sin puntas, de `inicio` girando `barrido` (|barrido| ≤ 120°) */
@@ -116,22 +149,34 @@ function crearArco(editor: Editor, t: Trazo) {
     editor.groupShapes(ids)
     editor.selectNone()
   }
+  compasAlFrente(editor)
 }
 
+// ── Estados de la herramienta ──
+
+/** 1) El compás en la mano: la aguja sigue al puntero, con la última abertura */
 class Idle extends StateNode {
   static override id = 'idle'
 
   override onEnter() {
     this.editor.setCursor({ type: 'cross', rotation: 0 })
+    const p = this.editor.inputs.getCurrentPagePoint()
+    moverCompas(this.editor, { x: p.x, y: p.y, props: { fase: 'enMano', barrido: 0 } })
   }
 
-  // 1) Clavar la aguja
+  override onPointerMove() {
+    const p = this.editor.inputs.getCurrentPagePoint()
+    moverCompas(this.editor, { x: p.x, y: p.y })
+  }
+
+  // Clavar la aguja
   override onPointerDown() {
     const p = this.editor.inputs.getOriginPagePoint()
-    trazo.set({ fase: 'abriendo', centro: { x: p.x, y: p.y }, r: 0, angulo: 0, inicio: 0, barrido: 0 })
+    moverCompas(this.editor, { x: p.x, y: p.y })
     this.parent.transition('apuntando')
   }
 
+  // Esc con el compás en la mano: se guarda y vuelve Seleccionar
   override onCancel() {
     this.editor.setCurrentTool('select')
   }
@@ -140,25 +185,27 @@ class Idle extends StateNode {
 class Apuntando extends StateNode {
   static override id = 'apuntando'
 
-  // Solo empieza a abrir el compás cuando el puntero se movió más que el umbral de arrastre de tldraw
+  // Arrastrar abre el compás desde cero; recién cuando el puntero se movió más que el umbral de arrastre de tldraw
   override onPointerMove() {
     if (this.editor.inputs.getIsDragging()) this.parent.transition('abriendo')
   }
 
+  // Un toque: queda clavado con la misma abertura (mediatriz: mismo radio desde el otro extremo)
   override onPointerUp() {
-    this.cerrar()
+    const c = leerCompas(this.editor)
+    if (c && c.props.r >= R_MINIMO) {
+      moverCompas(this.editor, { props: { fase: 'abierto' } })
+      this.parent.transition('abierto')
+    } else {
+      this.parent.transition('idle')
+    }
   }
 
   override onCancel() {
-    this.cerrar()
+    this.parent.transition('idle')
   }
 
   override onInterrupt() {
-    this.cerrar()
-  }
-
-  private cerrar() {
-    trazo.set(null)
     this.parent.transition('idle')
   }
 }
@@ -170,65 +217,59 @@ class Abriendo extends StateNode {
     this.actualizar()
   }
 
-  // 2) Abrir el compás: r = |lápiz − centro|, redondeado al milímetro
+  // 2) Abrir el compás: r = |lápiz − aguja|, redondeado al milímetro
   override onPointerMove() {
     this.actualizar()
   }
 
   // Al soltar, el compás queda abierto con ese radio y la aguja clavada
   override onPointerUp() {
-    const t = trazo.get()
-    if (t && t.r >= R_MINIMO) {
-      trazo.set({ ...t, fase: 'abierto' })
+    const c = leerCompas(this.editor)
+    if (c && c.props.r >= R_MINIMO) {
+      moverCompas(this.editor, { props: { fase: 'abierto' } })
       this.parent.transition('abierto')
     } else {
-      this.cerrar()
+      this.parent.transition('idle')
     }
   }
 
   override onCancel() {
-    this.cerrar()
+    this.parent.transition('idle')
   }
 
   override onInterrupt() {
-    this.cerrar()
+    this.parent.transition('idle')
   }
 
   private actualizar() {
-    const t = trazo.get()
-    if (!t) return
+    const c = leerCompas(this.editor)
+    if (!c) return
     const lapiz = this.editor.inputs.getCurrentPagePoint()
-    const r = redondearAMm(Math.hypot(lapiz.x - t.centro.x, lapiz.y - t.centro.y))
-    trazo.set({ ...t, r, angulo: anguloDesde(t.centro, lapiz) })
-  }
-
-  private cerrar() {
-    trazo.set(null)
-    this.parent.transition('idle')
+    const r = redondearAMm(Math.hypot(lapiz.x - c.x, lapiz.y - c.y))
+    moverCompas(this.editor, { props: { fase: 'abriendo', r, angulo: anguloDesde(c, lapiz) } })
   }
 }
 
 class Abierto extends StateNode {
   static override id = 'abierto'
 
-  // El lápiz sigue al puntero sobre la circunferencia
+  // El lápiz sigue al puntero sobre la circunferencia: el compás gira sobre la aguja
   override onPointerMove() {
-    const t = trazo.get()
-    if (t) trazo.set({ ...t, fase: 'abierto', angulo: anguloDesde(t.centro, this.editor.inputs.getCurrentPagePoint()) })
+    const c = leerCompas(this.editor)
+    if (c) moverCompas(this.editor, { props: { angulo: anguloDesde(c, this.editor.inputs.getCurrentPagePoint()) } })
   }
 
   // 3) Tocar: si es sobre la aguja, se traslada el compás; si no, se apoya el lápiz
   override onPointerDown() {
-    const t = trazo.get()
-    if (!t) return
+    const c = leerCompas(this.editor)
+    if (!c) return
     const p = this.editor.inputs.getOriginPagePoint()
-    const cercaDeLaAguja = Math.hypot(p.x - t.centro.x, p.y - t.centro.y) * this.editor.getZoomLevel() <= AGARRE_AGUJA
+    const cercaDeLaAguja = Math.hypot(p.x - c.x, p.y - c.y) * this.editor.getZoomLevel() <= AGARRE_AGUJA
     this.parent.transition(cercaDeLaAguja ? 'trasladando' : 'apoyando')
   }
 
-  // Esc cierra el compás; otro Esc vuelve a Seleccionar
+  // Esc levanta el compás con la misma abertura; otro Esc lo guarda
   override onCancel() {
-    trazo.set(null)
     this.parent.transition('idle')
   }
 }
@@ -238,18 +279,18 @@ class Apoyando extends StateNode {
 
   override onPointerMove() {
     if (!this.editor.inputs.getIsDragging()) return
-    const t = trazo.get()
-    if (!t) return
+    const c = leerCompas(this.editor)
+    if (!c) return
     // El arco arranca donde estaba el lápiz al apoyarlo
-    const a = anguloDesde(t.centro, this.editor.inputs.getOriginPagePoint())
-    trazo.set({ ...t, fase: 'girando', angulo: a, inicio: a, barrido: 0 })
+    const a = anguloDesde(c, this.editor.inputs.getOriginPagePoint())
+    moverCompas(this.editor, { props: { fase: 'girando', angulo: a, inicio: a, barrido: 0 } })
     this.parent.transition('girando')
   }
 
   // Un toque sin arrastrar: círculo entero
   override onPointerUp() {
-    const t = trazo.get()
-    if (t) crearCirculo(this.editor, t)
+    const c = leerCompas(this.editor)
+    if (c) crearCirculo(this.editor, trazoDe(c))
     this.parent.transition('abierto')
   }
 
@@ -263,31 +304,33 @@ class Girando extends StateNode {
 
   // 4) Girar el compás: se acumula cuánto giró el lápiz alrededor de la aguja
   override onPointerMove() {
-    const t = trazo.get()
-    if (!t) return
-    const a = anguloDesde(t.centro, this.editor.inputs.getCurrentPagePoint())
-    trazo.set({ ...t, angulo: a, barrido: t.barrido + diferencia(a, t.angulo) })
+    const c = leerCompas(this.editor)
+    if (!c) return
+    const a = anguloDesde(c, this.editor.inputs.getCurrentPagePoint())
+    moverCompas(this.editor, { props: { angulo: a, barrido: c.props.barrido + diferencia(a, c.props.angulo) } })
   }
 
   override onPointerUp() {
-    const t = trazo.get()
-    if (t) {
-      const giro = Math.abs(t.barrido)
-      if (giro >= CASI_VUELTA) crearCirculo(this.editor, t)
-      else if (giro >= BARRIDO_MINIMO) crearArco(this.editor, t)
-      trazo.set({ ...t, fase: 'abierto', barrido: 0 })
+    const c = leerCompas(this.editor)
+    if (c) {
+      const giro = Math.abs(c.props.barrido)
+      if (giro >= CASI_VUELTA) crearCirculo(this.editor, trazoDe(c))
+      else if (giro >= BARRIDO_MINIMO) crearArco(this.editor, trazoDe(c))
     }
-    this.parent.transition('abierto')
+    this.terminar()
   }
 
   override onCancel() {
-    const t = trazo.get()
-    if (t) trazo.set({ ...t, fase: 'abierto', barrido: 0 })
-    this.parent.transition('abierto')
+    this.terminar()
   }
 
   override onInterrupt() {
-    this.onCancel()
+    this.terminar()
+  }
+
+  private terminar() {
+    moverCompas(this.editor, { props: { fase: 'abierto', barrido: 0 } })
+    this.parent.transition('abierto')
   }
 }
 
@@ -296,10 +339,8 @@ class Trasladando extends StateNode {
   static override id = 'trasladando'
 
   override onPointerMove() {
-    const t = trazo.get()
-    if (!t) return
     const p = this.editor.inputs.getCurrentPagePoint()
-    trazo.set({ ...t, centro: { x: p.x, y: p.y } })
+    moverCompas(this.editor, { x: p.x, y: p.y })
   }
 
   override onPointerUp() {
@@ -316,78 +357,51 @@ export class CompasTool extends StateNode {
   static override initial = 'idle'
   static override children = (): TLStateNodeConstructor[] => [Idle, Apuntando, Abriendo, Abierto, Apoyando, Girando, Trasladando]
 
+  // Otra herramienta o el segundo Esc: el compás se guarda
   override onExit() {
-    trazo.set(null)
+    guardarCompas(this.editor)
   }
 }
 
-/** Arco de SVG desde `inicio` girando `barrido` (en la hoja, y hacia abajo) */
-function arcoSvg(c: Punto, r: number, inicio: number, barrido: number) {
-  const a = sobreCirculo(c, r, inicio)
-  const b = sobreCirculo(c, r, inicio + barrido)
-  const grande = Math.abs(barrido) > Math.PI ? 1 : 0
-  const sentido = barrido > 0 ? 1 : 0
-  return `M${a.x} ${a.y}A${r} ${r} 0 ${grande} ${sentido} ${b.x} ${b.y}`
-}
-
-/** Guía del compás. Va en components.OnTheCanvas: ya está en coordenadas de la hoja. */
+/** Ayuda para quien usa el compás (las demás no la ven). Va en components.OnTheCanvas: ya está en coordenadas de la hoja. */
 export function GuiaCompas() {
   const editor = useEditor()
-  const t = useValue('compas-trazo', () => trazo.get(), [])
+  const c = useValue('mi-compas', () => leerCompas(editor), [editor])
   const z = useValue('zoom', () => editor.getZoomLevel(), [editor])
-  if (!t) return null
+  if (!c) return null
 
-  // Grosores y letra divididos por el zoom: se ven iguales en pantalla con cualquier acercamiento
-  const fino = 1.5 / z
-  const punteado = `${6 / z} ${4 / z}`
-  const { centro, r, fase } = t
-  const lapiz = sobreCirculo(centro, r, t.angulo)
-  const grados = Math.round((Math.abs(t.barrido) * 180) / Math.PI)
-  const etiqueta = `r = ${formatEs(cmDesdePx(r), 1)} cm${fase === 'girando' ? ` · ${grados}°` : ''}`
+  const { fase } = c.props
   const ayuda =
-    fase === 'abierto' ? 'arrastrá: arco · tocá: círculo · aguja: mover · Esc: cerrar' : fase === 'abriendo' ? 'soltá para fijar el radio' : ''
+    fase === 'enMano'
+      ? 'clic: clavar con esta abertura · arrastrá: abrir · Esc: guardar'
+      : fase === 'abierto'
+        ? 'arrastrá: arco · tocá: círculo · aguja: mover · Esc: levantar'
+        : fase === 'abriendo'
+          ? 'soltá para fijar el radio'
+          : ''
+  if (!ayuda) return null
 
+  // zIndex alto: los shapes tienen 8000 o más y taparían la ayuda
   return (
-    <svg className="absolute top-0 left-0 overflow-visible pointer-events-none" width={1} height={1} aria-hidden="true">
-      {r > 0 && (
-        <>
-          <circle cx={centro.x} cy={centro.y} r={r} fill="none" stroke="#a855f7" strokeOpacity={0.4} strokeWidth={fino} strokeDasharray={punteado} />
-          <line x1={centro.x} y1={centro.y} x2={lapiz.x} y2={lapiz.y} stroke="#d946ef" strokeWidth={fino} strokeDasharray={punteado} />
-          {fase === 'girando' && t.barrido !== 0 && (
-            <path d={arcoSvg(centro, r, t.inicio, t.barrido)} fill="none" stroke="#9333ea" strokeWidth={2.5 / z} />
-          )}
-          <circle cx={lapiz.x} cy={lapiz.y} r={3 / z} fill="#d946ef" />
-          <text
-            x={lapiz.x + 10 / z}
-            y={lapiz.y - 10 / z}
-            fontSize={13 / z}
-            className="font-mono"
-            fill="#7e22ce"
-            stroke="white"
-            strokeWidth={3 / z}
-            paintOrder="stroke"
-          >
-            {etiqueta}
-          </text>
-        </>
-      )}
-      <circle cx={centro.x} cy={centro.y} r={4 / z} fill="none" stroke="#d946ef" strokeWidth={fino} />
-      <line x1={centro.x - 7 / z} y1={centro.y} x2={centro.x + 7 / z} y2={centro.y} stroke="#d946ef" strokeWidth={fino} />
-      <line x1={centro.x} y1={centro.y - 7 / z} x2={centro.x} y2={centro.y + 7 / z} stroke="#d946ef" strokeWidth={fino} />
-      {ayuda && (
-        <text
-          x={centro.x}
-          y={centro.y + 22 / z}
-          textAnchor="middle"
-          fontSize={11 / z}
-          fill="#6b21a8"
-          stroke="white"
-          strokeWidth={3 / z}
-          paintOrder="stroke"
-        >
-          {ayuda}
-        </text>
-      )}
+    <svg
+      className="absolute top-0 left-0 overflow-visible pointer-events-none"
+      style={{ zIndex: 100000 }}
+      width={1}
+      height={1}
+      aria-hidden="true"
+    >
+      <text
+        x={c.x}
+        y={c.y + 22 / z}
+        textAnchor="middle"
+        fontSize={11 / z}
+        fill="#6b21a8"
+        stroke="white"
+        strokeWidth={3 / z}
+        paintOrder="stroke"
+      >
+        {ayuda}
+      </text>
     </svg>
   )
 }

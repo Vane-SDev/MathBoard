@@ -10,7 +10,7 @@ import {
 import type { Metodo } from '../lib/plot'
 import type { Orden } from '../lib/surface3d'
 import type { SistemaCoordenadas } from '../lib/coordenadas'
-import { anchoRegla, ALTO_REGLA, medidasEscuadra, medidasTransportador, type AngulosEscuadra } from '../lib/geometria'
+import { anchoRegla, ALTO_REGLA, PX_POR_CM, medidasEscuadra, medidasTransportador, type AngulosEscuadra } from '../lib/geometria'
 
 // ── binomio-cuadrado ──
 export type BinomioProps = {
@@ -646,6 +646,34 @@ export const escuadraProps: RecordProps<TLShape<'escuadra'>> = {
 
 export const escuadraDefaults: EscuadraProps = { ...medidasEscuadra('45'), angulos: '45' }
 
+// ── compás ──
+/** enMano: sigue al puntero · abriendo: aguja clavada, se abre · abierto: quieto · girando: traza el arco */
+export type FaseCompas = 'enMano' | 'abriendo' | 'abierto' | 'girando'
+
+/** x, y del shape = la aguja. El giro va en `angulo` (rotation queda en 0). Ángulos en la hoja (y hacia abajo). */
+export type CompasProps = {
+  /** Abertura en unidades de la hoja, redondeada al mm */
+  r: number
+  /** Dirección aguja → lápiz */
+  angulo: number
+  fase: FaseCompas
+  /** Dónde empezó el arco en curso */
+  inicio: number
+  /** Cuánto giró el arco en curso, con signo y acumulado (0 si no hay arco) */
+  barrido: number
+}
+
+export const compasProps: RecordProps<TLShape<'compas'>> = {
+  r: T.number,
+  angulo: T.number,
+  fase: T.literalEnum('enMano', 'abriendo', 'abierto', 'girando'),
+  inicio: T.number,
+  barrido: T.number,
+}
+
+/** Primera abertura: 3 cm */
+export const compasDefaults: CompasProps = { r: 3 * PX_POR_CM, angulo: 0, fase: 'enMano', inicio: 0, barrido: 0 }
+
 declare module 'tldraw' {
   export interface TLGlobalShapePropsMap {
     'binomio-cuadrado': BinomioProps
@@ -664,6 +692,7 @@ declare module 'tldraw' {
     regla: ReglaProps
     transportador: TransportadorProps
     escuadra: EscuadraProps
+    compas: CompasProps
   }
 }
 
@@ -684,4 +713,5 @@ export const LAB_SCHEMAS = {
   regla: { props: reglaProps },
   transportador: { props: transportadorProps },
   escuadra: { props: escuadraProps },
+  compas: { props: compasProps },
 } as const

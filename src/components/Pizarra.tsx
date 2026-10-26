@@ -20,7 +20,8 @@ import { CambioVariables3DShapeUtil } from '@/components/CambioVariables3DShape'
 import { ReglaShapeUtil } from '@/components/ReglaShape'
 import { TransportadorShapeUtil } from '@/components/TransportadorShape'
 import { EscuadraShapeUtil } from '@/components/EscuadraShape'
-import { CompasTool, GuiaCompas } from '@/components/CompasTool'
+import { CompasShapeUtil } from '@/components/CompasShape'
+import { CompasTool, GuiaCompas, guardarCompas } from '@/components/CompasTool'
 import { assetsEnLinea } from '@/lib/assetsEnLinea'
 import { registrarTrazoConRegla } from '@/lib/trazos'
 import { urlDeSincronizacion } from '@/lib/sala'
@@ -48,6 +49,7 @@ const misBloquesMatematicos = [
   ReglaShapeUtil,
   TransportadorShapeUtil,
   EscuadraShapeUtil,
+  CompasShapeUtil,
 ]
 
 // useSync necesita todos los utils (los de tldraw + los nuestros) para armar el schema de la sala.
@@ -103,6 +105,8 @@ export function Pizarra({ sala }: { sala: string }) {
           onMount={(instanciaEditor) => {
             // Tema claro por defecto (hoja de cuaderno). Cada usuario puede cambiarlo desde el menú de tldraw.
             instanciaEditor.user.updateUserPreferences({ colorScheme: 'light' })
+            // Si se cerró la pestaña con el compás en la mano, quedó en la sala: se guarda al volver
+            guardarCompas(instanciaEditor)
             // Trazos a mano sobre el canto de una regla o escuadra quedan rectos
             return registrarTrazoConRegla(instanciaEditor)
           }}
